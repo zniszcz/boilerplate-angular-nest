@@ -21,10 +21,22 @@ Work in progress.
 - TypeScript stays on 6.0 because typescript-eslint, Angular and the NestJS CLI
   do not support 7.0 yet.
 
+## Workspace layout
+
+| Path | Project | Description |
+|---|---|---|
+| `apps/api` | `api` | NestJS backend |
+| `apps/web` | `web` | Angular frontend |
+| `libs/shared/contracts` | `contracts` | Types shared by frontend and backend, imported as `@boilerplate/contracts` |
+
+The workspace uses Nx 23.2.1. Dependency build scripts must be allowed
+explicitly in `allowBuilds` in `pnpm-workspace.yaml`.
+
 ## Getting started
 
 ```sh
 nvm use
 corepack enable
 pnpm install
+pnpm nx run-many -t build
 ```

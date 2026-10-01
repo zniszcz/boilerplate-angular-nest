@@ -1,3 +1,26 @@
 saveExact: true
 savePrefix: ''
 engineStrict: true
+allowBuilds:
+  '@parcel/watcher': true
+  nx: true
+  unrs-resolver: true
+  "@nestjs/core": false
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+minimumReleaseAgeExclude:
+  - '@angular/common@22.2.1'
+  - '@angular/compiler@22.2.1'
+  - '@angular/core@22.2.1'
+  - '@angular/forms@22.2.1'
+  - '@angular/platform-browser@22.2.1'
+  - '@angular/router@22.2.1'
+  - '@angular-devkit/architect@0.2202.1'
+  - '@angular-devkit/core@22.2.1'
+  - '@angular-devkit/schematics@22.2.1'
+  - '@angular/build@22.2.1'
+  - '@angular/cli@22.2.1'
+  - '@angular/compiler-cli@22.2.1'
+  - '@angular/language-service@22.2.1'
+  - '@schematics/angular@22.2.1'
