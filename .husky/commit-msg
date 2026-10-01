@@ -1,0 +1,6 @@
+# Conventional Commits check. It only warns and never blocks the commit.
+if ! pnpm exec commitlint --edit "$1"; then
+  echo "commitlint: the message above does not follow Conventional Commits." >&2
+  echo "commitlint: the commit was created anyway. Amend it with: git commit --amend" >&2
+fi
+exit 0

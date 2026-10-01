@@ -54,6 +54,13 @@ pnpm format:check
 pnpm format
 ```
 
+## Commit messages
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+A husky `commit-msg` hook runs commitlint on every commit. The check only
+warns: a commit with a non-conforming message is still created. Hooks are
+installed by `pnpm install` through the `prepare` script.
+
 ## Getting started
 
 ```sh
