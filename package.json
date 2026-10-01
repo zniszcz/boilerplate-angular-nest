@@ -20,6 +20,7 @@
     }
   },
   "scripts": {
+    "dev": "nx run-many -t serve --projects=api,web",
     "build": "nx run-many -t build",
     "lint": "nx run-many -t lint",
     "format": "prettier --write .",
