@@ -1,0 +1,25 @@
+{
+  "name": "boilerplate-angular-nest",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": "24.21.0",
+    "pnpm": "12.8.1"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.21.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.8.1",
+      "onFail": "error"
+    }
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
