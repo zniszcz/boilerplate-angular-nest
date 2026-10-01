@@ -157,12 +157,21 @@ These need the [machine setup](#setup).
 | `apps/web`              | `web`       | Angular frontend                                                           |
 | `libs/shared/contracts` | `contracts` | Types shared by frontend and backend, imported as `@boilerplate/contracts` |
 
-## Dependencies
+## Pinned versions
 
-- Versions are exact, without `^` or `~`. `saveExact` in
-  `pnpm-workspace.yaml` keeps it that way for `pnpm add`.
+We always lock exact versions of everything: Node.js, pnpm and every
+dependency.
+
+- Dependencies are saved without `^` or `~`. `saveExact` in
+  `pnpm-workspace.yaml` makes `pnpm add` do this automatically.
+- `pnpm-lock.yaml` is committed, so every install gets the same dependency
+  tree.
 - pnpm refuses to run on a Node.js version other than the one in `.nvmrc`
   (`devEngines` in `package.json`).
+- Always install packages from the repository root, for example
+  `pnpm add -D some-package`. This is an Nx monorepo with a single
+  `package.json` shared by all apps and libraries, so the projects in `apps/`
+  and `libs/` have no `package.json` of their own.
 - A dependency that needs a build script must be allowed in `allowBuilds` in
   `pnpm-workspace.yaml`.
 - Held back on purpose:
