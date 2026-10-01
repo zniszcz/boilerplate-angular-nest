@@ -4,4 +4,4 @@ tmp/
 .nx/
 .angular/
 .env
-.env.local
+*.local
