@@ -12,6 +12,9 @@ Work in progress.
 | Node.js | 24.21.0 | `.nvmrc`, `engines.node`, `devEngines.runtime` |
 | pnpm | 12.8.1 | `packageManager`, `engines.pnpm`, `devEngines.packageManager` |
 | TypeScript | 6.0.3 | `devDependencies` |
+| Nx | 23.2.1 | `devDependencies` |
+| Angular | 22.2.1 | `dependencies`, `devDependencies` |
+| NestJS | 11.2.7 | `dependencies`, `devDependencies` |
 
 - `devEngines.runtime` with `onFail: "error"` makes pnpm refuse to run on any
   other Node.js version.
@@ -20,6 +23,8 @@ Work in progress.
 - `pnpm-lock.yaml` is committed. CI installs with `pnpm install --frozen-lockfile`.
 - TypeScript stays on 6.0 because typescript-eslint, Angular and the NestJS CLI
   do not support 7.0 yet.
+- NestJS stays on 11 because Nx 23 supports NestJS only up to 11. Upgrade to
+  12 once Nx supports it.
 
 ## Workspace layout
 
