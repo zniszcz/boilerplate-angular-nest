@@ -5,32 +5,16 @@ and a NestJS backend. Fork it when starting a new application.
 
 Work in progress.
 
-## Getting started
-
-Requirements: [nvm](https://github.com/nvm-sh/nvm), and Docker with
-Docker Compose for options A and B.
-
-```sh
-nvm install        # installs the Node.js version from .nvmrc
-corepack enable    # provides the pnpm version from package.json
-pnpm install       # also installs the git hooks
-pnpm build         # checks that everything compiles
-```
-
-Then pick one of the [local development options](#local-development).
-
 ## Local development
 
-There are three ways to run the project locally. In all of them the apps
+There are three ways to run the project locally. In all of them both apps
 reload automatically when a file changes.
 
-| Option                               | Runs in Docker                       | Runs on your machine             | Needs Docker |
-| ------------------------------------ | ------------------------------------ | -------------------------------- | ------------ |
-| [A. Everything in Docker](#option-a) | PostgreSQL, Adminer, `api` and `web` | nothing                          | yes          |
-| [B. Database in Docker](#option-b)   | PostgreSQL and Adminer               | `api` and `web`                  | yes          |
-| [C. No Docker](#option-c)            | nothing                              | `api`, `web` and your PostgreSQL | no           |
-
-All options first need the [setup](#getting-started) steps.
+| Option                               | Runs in Docker                       | Runs on your machine             | You need                            |
+| ------------------------------------ | ------------------------------------ | -------------------------------- | ----------------------------------- |
+| [A. Everything in Docker](#option-a) | PostgreSQL, Adminer, `api` and `web` | nothing                          | Docker                              |
+| [B. Database in Docker](#option-b)   | PostgreSQL and Adminer               | `api` and `web`                  | Docker, [machine setup](#setup)     |
+| [C. No Docker](#option-c)            | nothing                              | `api`, `web` and your PostgreSQL | PostgreSQL, [machine setup](#setup) |
 
 ### Addresses
 
@@ -48,9 +32,15 @@ password and database. These credentials are for local development only.
 
 ### A. Everything in Docker
 
+Needs only Docker with Docker Compose. Node.js and pnpm run inside the
+containers.
+
 ```sh
 docker compose --profile apps watch
 ```
+
+This one command starts the database, Adminer, the API and the web app, and
+keeps them in sync with your files.
 
 - Source code reaches the containers through `docker compose watch` sync,
   not a bind mount. Saving a file in `apps/` or `libs/` copies it into the
@@ -66,35 +56,52 @@ docker compose --profile apps watch
 
 ### B. Database in Docker, apps on your machine
 
+Needs Docker and the [machine setup](#setup).
+
 ```sh
 docker compose up -d
-pnpm nx serve api
-pnpm nx serve web
+pnpm dev
 ```
 
-Run the two `nx serve` commands in separate terminals.
-
 - `docker compose up` without a profile starts only PostgreSQL and Adminer.
-- `nx serve api` reads its defaults from `apps/api/.env.serve`, which points
-  at the database from Docker.
-- Stop the database with `docker compose down`.
+- `pnpm dev` starts the API and the web app together, both with watchers,
+  in one terminal. To run only one of them, use `pnpm nx serve api` or
+  `pnpm nx serve web`.
+- The API reads its defaults from `apps/api/.env.serve`, which points at the
+  database from Docker.
+- Stop the apps with `Ctrl+C` and the database with `docker compose down`.
 
 <a id="option-c"></a>
 
 ### C. No Docker
 
-Use a PostgreSQL server you already have. Create a database and a user for
-the project, then point the API at it in `apps/api/.env.serve.local`:
+Needs the [machine setup](#setup) and a PostgreSQL server you already have.
+Create a database and a user for the project, then point the API at it in
+`apps/api/.env.serve.local`:
 
 ```sh
 echo 'DATABASE_URL=postgres://user:password@localhost:5432/database' > apps/api/.env.serve.local
-pnpm nx serve api
-pnpm nx serve web
+pnpm dev
 ```
 
+- `pnpm dev` works the same way as in option B.
 - Files ending with `.local` are not committed, so your credentials stay on
   your machine.
 - Values in `.env.serve.local` override the defaults from `.env.serve`.
+
+<a id="setup"></a>
+
+### Machine setup
+
+Needed for options B and C, and for working on the code: linting, building
+and the git hook that checks commit messages. Requires
+[nvm](https://github.com/nvm-sh/nvm).
+
+```sh
+nvm install        # installs the Node.js version from .nvmrc
+corepack enable    # provides the pnpm version from package.json
+pnpm install       # installs dependencies and the git hooks
+```
 
 ### Configuration
 
@@ -129,6 +136,18 @@ and B keep working without other changes.
 The other ports in `.env` change only the ports Docker publishes. To change
 the port of `nx serve api` on your machine, set `PORT` in
 `apps/api/.env.serve.local`.
+
+## Commands
+
+These need the [machine setup](#setup).
+
+| Command             | What it does                               |
+| ------------------- | ------------------------------------------ |
+| `pnpm dev`          | Runs the API and the web app with watchers |
+| `pnpm build`        | Builds all apps                            |
+| `pnpm lint`         | Runs ESLint in all projects                |
+| `pnpm format`       | Formats all files with Prettier            |
+| `pnpm format:check` | Checks formatting without changing files   |
 
 ## Workspace layout
 
@@ -172,12 +191,6 @@ explicitly in `allowBuilds` in `pnpm-workspace.yaml`.
   `pnpm exec eslint-config-prettier <file>`.
 - `.editorconfig` matches the Prettier settings, so editors without Prettier
   produce the same formatting.
-
-```sh
-pnpm lint
-pnpm format:check
-pnpm format
-```
 
 ## Commit messages
 
