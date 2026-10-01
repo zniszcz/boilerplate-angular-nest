@@ -3,8 +3,6 @@
 Project template for new applications: an Nx monorepo with an Angular frontend
 and a NestJS backend. Fork it when starting a new application.
 
-Work in progress.
-
 ## Local development
 
 There are three ways to run the project locally. In all of them both apps
@@ -149,13 +147,21 @@ These need the [machine setup](#setup).
 | `pnpm format`       | Formats all files with Prettier            |
 | `pnpm format:check` | Checks formatting without changing files   |
 
-## Workspace layout
+## Where code goes
 
-| Path                    | Project     | Description                                                                |
-| ----------------------- | ----------- | -------------------------------------------------------------------------- |
-| `apps/api`              | `api`       | NestJS backend                                                             |
-| `apps/web`              | `web`       | Angular frontend                                                           |
-| `libs/shared/contracts` | `contracts` | Types shared by frontend and backend, imported as `@boilerplate/contracts` |
+| Code                                     | Place                                                         |
+| ---------------------------------------- | ------------------------------------------------------------- |
+| Bootstrapping and wiring of the backend  | `apps/api`                                                    |
+| Bootstrapping and wiring of the frontend | `apps/web`                                                    |
+| Backend logic                            | `libs/api/<domain>`, one library per domain                   |
+| Shared UI components                     | `libs/web/ui`                                                 |
+| Types used by both frontend and backend  | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
+
+- Apps stay thin. Logic lives in libraries, because Nx checks the allowed
+  dependencies (`@nx/enforce-module-boundaries`) between projects, not between
+  folders inside one project.
+- Create a library with an Nx generator, for example
+  `pnpm nx g @nx/nest:library libs/api/orders`.
 
 ## Pinned versions
 
