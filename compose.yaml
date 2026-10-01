@@ -1,5 +1,5 @@
 # Local development only. Two modes:
-#   docker compose up -d                  database and Adminer, apps run locally
+#   docker compose up -d                  databases and admin panels, apps run locally
 #   docker compose --profile apps watch   everything in Docker, synced on change
 name: boilerplate-angular-nest
 
@@ -30,6 +30,59 @@ services:
     depends_on:
       - postgres
 
+  # Same image as in the cluster. Valkey is compatible with Redis.
+  valkey:
+    image: valkey/valkey:9.0.6-alpine
+    # Like in the cluster: the default user is off, apps log in with a user.
+    command:
+      [
+        valkey-server,
+        --user,
+        default,
+        'off',
+        --user,
+        app,
+        'on',
+        '>app',
+        '~*',
+        '&*',
+        '+@all',
+      ]
+    ports:
+      - '127.0.0.1:${VALKEY_PORT:-6379}:6379'
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'valkey-cli',
+          '--user',
+          'app',
+          '--pass',
+          'app',
+          '--no-auth-warning',
+          'ping',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Shows the valkey connection after you accept the licence on first open.
+  redisinsight:
+    image: redis/redisinsight:3.8.0
+    environment:
+      RI_REDIS_HOST0: valkey
+      RI_REDIS_ALIAS0: valkey
+      RI_REDIS_USERNAME0: app
+      RI_REDIS_PASSWORD0: app
+    ports:
+      - '127.0.0.1:${REDISINSIGHT_PORT:-5540}:5540'
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      - valkey
+
   api:
     profiles: [apps]
     build:
@@ -41,12 +94,15 @@ services:
       LOG_LEVEL: debug
       MEDIA_DIR: /app/media
       DATABASE_URL: postgres://app:app@postgres:5432/app
+      REDIS_URL: redis://app:app@valkey:6379
     ports:
       - '127.0.0.1:${API_PORT:-3000}:3000'
     volumes:
       - media:/app/media
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     develop:
       watch:
@@ -84,4 +140,6 @@ services:
 
 volumes:
   postgres-data:
+  valkey-data:
+  redisinsight-data:
   media:

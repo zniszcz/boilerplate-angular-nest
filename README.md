@@ -8,23 +8,34 @@ and a NestJS backend. Fork it when starting a new application.
 There are three ways to run the project locally. In all of them both apps
 reload automatically when a file changes.
 
-| Option                               | Runs in Docker                       | Runs on your machine             | You need                            |
-| ------------------------------------ | ------------------------------------ | -------------------------------- | ----------------------------------- |
-| [A. Everything in Docker](#option-a) | PostgreSQL, Adminer, `api` and `web` | nothing                          | Docker                              |
-| [B. Database in Docker](#option-b)   | PostgreSQL and Adminer               | `api` and `web`                  | Docker, [machine setup](#setup)     |
-| [C. No Docker](#option-c)            | nothing                              | `api`, `web` and your PostgreSQL | PostgreSQL, [machine setup](#setup) |
+| Option                               | Runs in Docker                     | Runs on your machine                     | You need                                    |
+| ------------------------------------ | ---------------------------------- | ---------------------------------------- | ------------------------------------------- |
+| [A. Everything in Docker](#option-a) | databases, panels, `api` and `web` | nothing                                  | Docker                                      |
+| [B. Databases in Docker](#option-b)  | databases and panels               | `api` and `web`                          | Docker, [machine setup](#setup)             |
+| [C. No Docker](#option-c)            | nothing                            | `api`, `web`, your PostgreSQL and Valkey | PostgreSQL, Valkey, [machine setup](#setup) |
+
+Databases are PostgreSQL and Valkey (compatible with Redis). Panels are
+Adminer for PostgreSQL and RedisInsight for Valkey. The versions match the
+cluster.
 
 ### Addresses
 
-| Service    | Address                   | Options |
-| ---------- | ------------------------- | ------- |
-| API        | http://localhost:3000/api | A, B, C |
-| Web        | http://localhost:4200     | A, B, C |
-| Adminer    | http://localhost:8080     | A, B    |
-| PostgreSQL | `localhost:5432`          | A, B    |
+| Service      | Address                   | Options |
+| ------------ | ------------------------- | ------- |
+| API          | http://localhost:3000/api | A, B, C |
+| Web          | http://localhost:4200     | A, B, C |
+| Adminer      | http://localhost:8080     | A, B    |
+| RedisInsight | http://localhost:5540     | A, B    |
+| PostgreSQL   | `localhost:5432`          | A, B    |
+| Valkey       | `localhost:6379`          | A, B    |
 
-Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
-password and database. These credentials are for local development only.
+- Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
+  password and database.
+- Valkey user `app`, password `app`. The `default` user is off, like in the
+  cluster, so connections without a user fail with `NOAUTH`.
+- RedisInsight asks you to accept its licence on first open. After that the
+  `valkey` connection is on the list, already logged in.
+- These credentials are for local development only.
 
 <a id="option-a"></a>
 
@@ -37,8 +48,8 @@ containers.
 docker compose --profile apps watch
 ```
 
-This one command starts the database, Adminer, the API and the web app, and
-keeps them in sync with your files.
+This one command starts the databases, the panels, the API and the web app,
+and keeps them in sync with your files.
 
 - Source code reaches the containers through `docker compose watch` sync,
   not a bind mount. Saving a file in `apps/` or `libs/` copies it into the
@@ -52,7 +63,7 @@ keeps them in sync with your files.
 
 <a id="option-b"></a>
 
-### B. Database in Docker, apps on your machine
+### B. Databases in Docker, apps on your machine
 
 Needs Docker and the [machine setup](#setup).
 
@@ -61,24 +72,28 @@ docker compose up -d
 pnpm dev
 ```
 
-- `docker compose up` without a profile starts only PostgreSQL and Adminer.
+- `docker compose up` without a profile starts only the databases and the
+  panels.
 - `pnpm dev` starts the API and the web app together, both with watchers,
   in one terminal. To run only one of them, use `pnpm nx serve api` or
   `pnpm nx serve web`.
 - The API reads its defaults from `apps/api/.env.serve`, which points at the
-  database from Docker.
-- Stop the apps with `Ctrl+C` and the database with `docker compose down`.
+  databases from Docker.
+- Stop the apps with `Ctrl+C` and the databases with `docker compose down`.
 
 <a id="option-c"></a>
 
 ### C. No Docker
 
-Needs the [machine setup](#setup) and a PostgreSQL server you already have.
-Create a database and a user for the project, then point the API at it in
-`apps/api/.env.serve.local`:
+Needs the [machine setup](#setup), and a PostgreSQL server and a Valkey (or
+Redis) server you already have. Create a database and a user for the
+project, then point the API at both in `apps/api/.env.serve.local`:
 
 ```sh
-echo 'DATABASE_URL=postgres://user:password@localhost:5432/database' > apps/api/.env.serve.local
+cat > apps/api/.env.serve.local <<'ENV'
+DATABASE_URL=postgres://user:password@localhost:5432/database
+REDIS_URL=redis://user:password@localhost:6379
+ENV
 pnpm dev
 ```
 
@@ -109,6 +124,7 @@ pnpm install       # installs dependencies and the git hooks
 | `LOG_LEVEL`    | `fatal`, `error`, `warn`, `log` (alias `info`), `debug` or `verbose`              | `debug`                | `debug`           |
 | `MEDIA_DIR`    | Directory for media files, the same path as in the cluster when running in Docker | `tmp/media`            | `/app/media`      |
 | `DATABASE_URL` | PostgreSQL connection string                                                      | Docker database        | Docker database   |
+| `REDIS_URL`    | Valkey connection string, in the format used by Redis clients                     | Docker Valkey          | Docker Valkey     |
 
 Outside Docker, Nx loads environment files for `nx serve api` in this order,
 and the first value found wins:
@@ -128,8 +144,8 @@ cp .env.example .env
 # then set for example POSTGRES_PORT=5442
 ```
 
-Docker Compose and the API defaults both read `POSTGRES_PORT`, so options A
-and B keep working without other changes.
+Docker Compose and the API defaults both read `POSTGRES_PORT` and
+`VALKEY_PORT`, so options A and B keep working without other changes.
 
 The other ports in `.env` change only the ports Docker publishes. To change
 the port of `nx serve api` on your machine, set `PORT` in
