@@ -5,7 +5,7 @@ allowBuilds:
   '@parcel/watcher': true
   nx: true
   unrs-resolver: true
-  "@nestjs/core": false
+  '@nestjs/core': false
   esbuild: true
   lmdb: true
   msgpackr-extract: true
@@ -24,3 +24,4 @@ minimumReleaseAgeExclude:
   - '@angular/compiler-cli@22.2.1'
   - '@angular/language-service@22.2.1'
   - '@schematics/angular@22.2.1'
+  - globals@17.13.0

@@ -1,0 +1,6 @@
+dist/
+tmp/
+coverage/
+.nx/
+.angular/
+pnpm-lock.yaml
