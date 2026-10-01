@@ -157,29 +157,18 @@ These need the [machine setup](#setup).
 | `apps/web`              | `web`       | Angular frontend                                                           |
 | `libs/shared/contracts` | `contracts` | Types shared by frontend and backend, imported as `@boilerplate/contracts` |
 
-The workspace uses Nx 23.2.1. Dependency build scripts must be allowed
-explicitly in `allowBuilds` in `pnpm-workspace.yaml`.
+## Dependencies
 
-## Pinned versions
-
-| Tool       | Version | Where it is pinned                                            |
-| ---------- | ------- | ------------------------------------------------------------- |
-| Node.js    | 24.21.0 | `.nvmrc`, `engines.node`, `devEngines.runtime`                |
-| pnpm       | 12.8.1  | `packageManager`, `engines.pnpm`, `devEngines.packageManager` |
-| TypeScript | 6.0.3   | `devDependencies`                                             |
-| Nx         | 23.2.1  | `devDependencies`                                             |
-| Angular    | 22.2.1  | `dependencies`, `devDependencies`                             |
-| NestJS     | 11.2.7  | `dependencies`, `devDependencies`                             |
-
-- `devEngines.runtime` with `onFail: "error"` makes pnpm refuse to run on any
-  other Node.js version.
-- `pnpm-workspace.yaml` sets `saveExact: true`, so new dependencies are saved
-  without `^` or `~`.
-- `pnpm-lock.yaml` is committed. CI installs with `pnpm install --frozen-lockfile`.
-- TypeScript stays on 6.0 because typescript-eslint, Angular and the NestJS CLI
-  do not support 7.0 yet.
-- NestJS stays on 11 because Nx 23 supports NestJS only up to 11. Upgrade to
-  12 once Nx supports it.
+- Versions are exact, without `^` or `~`. `saveExact` in
+  `pnpm-workspace.yaml` keeps it that way for `pnpm add`.
+- pnpm refuses to run on a Node.js version other than the one in `.nvmrc`
+  (`devEngines` in `package.json`).
+- A dependency that needs a build script must be allowed in `allowBuilds` in
+  `pnpm-workspace.yaml`.
+- Held back on purpose:
+  - TypeScript on 6, because typescript-eslint, Angular and the NestJS CLI do
+    not support 7 yet.
+  - NestJS on 11, because Nx supports NestJS only up to 11.
 
 ## Linting and formatting
 
