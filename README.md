@@ -61,6 +61,37 @@ A husky `commit-msg` hook runs commitlint on every commit. The check only
 warns: a commit with a non-conforming message is still created. Hooks are
 installed by `pnpm install` through the `prepare` script.
 
+## Local development
+
+Two modes, both with automatic reload on file change:
+
+| Mode                 | Command                                                                  | What runs in Docker                  |
+| -------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
+| Apps locally         | `docker compose up -d`, then `pnpm nx serve api` and `pnpm nx serve web` | PostgreSQL and Adminer               |
+| Everything in Docker | `docker compose --profile apps watch`                                    | PostgreSQL, Adminer, `api` and `web` |
+
+| Service    | Address                                                                      |
+| ---------- | ---------------------------------------------------------------------------- |
+| API        | http://localhost:3000/api                                                    |
+| Web        | http://localhost:4200                                                        |
+| Adminer    | http://localhost:8080 (server `postgres`, user, password and database `app`) |
+| PostgreSQL | `localhost:5432`                                                             |
+
+- In Docker mode, source code reaches the containers through
+  `docker compose watch` sync, not a bind mount. Changes to `package.json` or
+  `pnpm-lock.yaml` rebuild the image.
+- Nx turns off its daemon inside Docker, but `nx serve api` needs it to restart
+  on change, so the `dev` stage sets `NX_DAEMON=true`.
+- Outside Docker, `nx serve api` reads defaults from `apps/api/.env.serve`.
+  Docker mode sets the same variables in `compose.yaml`.
+- `LOG_LEVEL` accepts `fatal`, `error`, `warn`, `log` (alias `info`), `debug`
+  and `verbose`. Local default is `debug`.
+- Media files go to the `media` volume at `/app/media`, the same path as in the
+  cluster. Outside Docker they go to `tmp/media`.
+- All ports bind to `127.0.0.1`. If a port is taken, copy `.env.example` to
+  `.env` and change it there.
+- Credentials in these files are for local development only.
+
 ## Getting started
 
 ```sh

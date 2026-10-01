@@ -1,0 +1,20 @@
+# Build context is the repository root: docker build -f apps/api/Dockerfile .
+
+FROM node:24.21.0-slim AS base
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    HUSKY=0 \
+    NX_NO_CLOUD=true
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Local development. Source code is synced by docker compose watch.
+FROM deps AS dev
+# Nx disables its daemon inside Docker, but file watching needs it.
+ENV NX_DAEMON=true
+COPY . .
+EXPOSE 3000
+CMD ["pnpm", "nx", "serve", "api"]

@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+tmp
+coverage
+.nx
+.angular
+.env
+.env.local
