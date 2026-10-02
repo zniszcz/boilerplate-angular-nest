@@ -1,6 +1,7 @@
 import { HttpClient, type HttpInterceptorFn } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, isDevMode } from '@angular/core';
 import {
+  provideTransloco,
   type Translation,
   type TranslocoLoader,
   TranslocoService,
@@ -48,4 +49,18 @@ export function saveLanguage(language: string): void {
   } catch {
     // Storage can be blocked, the choice then lasts until reload.
   }
+}
+
+/** Transloco with the app languages and the remembered choice. */
+export function provideI18n() {
+  return provideTransloco({
+    config: {
+      availableLangs: [...LANGUAGES],
+      defaultLang: savedLanguage(),
+      fallbackLang: DEFAULT_LANGUAGE,
+      reRenderOnLangChange: true,
+      prodMode: !isDevMode(),
+    },
+    loader: TranslationLoader,
+  });
 }

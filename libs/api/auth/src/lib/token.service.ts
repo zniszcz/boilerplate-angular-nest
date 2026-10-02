@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { AccessTokenClaims, AuthUser } from './auth-user';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+export const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 @Injectable()
 export class TokenService {

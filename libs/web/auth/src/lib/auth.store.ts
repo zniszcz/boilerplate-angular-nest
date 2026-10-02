@@ -52,6 +52,11 @@ export const AuthStore = signalStore(
       patchState(store, { user: null });
     },
 
+    /** Updates the user, for example with fresh permissions after a refresh. */
+    setUser(user: UserDto): void {
+      patchState(store, { user });
+    },
+
     /** Forgets the user without calling the API, after a 401. */
     clear(): void {
       patchState(store, { user: null });

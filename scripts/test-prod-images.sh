@@ -142,6 +142,40 @@ curl -fs -o /dev/null -D - -X POST "$B/auth/logout" \
   | grep -qi '^set-cookie: access_token=;' || fail "logout does not clear the cookie"
 pass "logout clears the cookie"
 
+# Refresh tokens: rotation, a race between two tabs, theft and logout.
+cookie_value() { sed -n "s/^[Ss]et-[Cc]ookie: \($1=[^;]*\).*/\1/p"; }
+login_headers() {
+  curl -fs -o /dev/null -D - -H 'content-type: application/json' \
+    -d '{"email":"admin@example.com","password":"admin"}' "$B/auth/login"
+}
+refresh() { curl -s -o /dev/null -D - -X POST -H "Cookie: $1" "$B/auth/refresh"; }
+code() { head -1 | awk '{print $2}'; }
+
+headers=$(login_headers)
+grep -qi '^set-cookie: refresh_token=.*Path=/api/auth' <<<"$headers" \
+  || fail "refresh cookie is not limited to /api/auth"
+r1=$(cookie_value refresh_token <<<"$headers")
+rotated=$(refresh "$r1")
+[ "$(code <<<"$rotated")" = 200 ] || fail "refresh"
+r2=$(cookie_value refresh_token <<<"$rotated")
+a2=$(cookie_value access_token <<<"$rotated")
+[ "$(status -H "Cookie: $a2" "$B/users/me")" = 200 ] || fail "new access token"
+pass "refresh issues new tokens"
+[ "$(refresh "$r1" | code)" = 401 ] || fail "a used refresh token works again"
+r3=$(refresh "$r2" | cookie_value refresh_token)
+[ -n "$r3" ] || fail "a reuse within the grace time ended the session"
+pass "a used token is refused, a reuse right after does not end the session"
+docker exec prod-test-db psql -U app -d app -qc \
+  "update refresh_tokens set used_at = now() - interval '1 minute' where used_at is not null"
+[ "$(refresh "$r1" | code)" = 401 ] || fail "stolen token accepted"
+[ "$(refresh "$r3" | code)" = 401 ] || fail "theft did not end the session"
+pass "reusing an old token ends the whole session"
+r=$(login_headers | cookie_value refresh_token)
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Cookie: $r" "$B/auth/logout")" = 204 ] \
+  || fail "logout"
+[ "$(refresh "$r" | code)" = 401 ] || fail "refresh after logout"
+pass "logout ends the session"
+
 curl -s -H 'content-type: application/json' -H 'accept-language: pl' \
   -d '{"email":"admin@example.com","password":"wrong"}' "$B/auth/login" \
   | grep -q 'Nieprawidłowy' || fail "error not translated to Polish"

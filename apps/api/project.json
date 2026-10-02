@@ -79,7 +79,7 @@
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "typeorm migration:generate -d dist/apps/api/data-source.js apps/api/src/database/migrations/{args.name} && prettier --write apps/api/src/database/migrations",
+        "command": "node apps/api/scripts/migration-generate.mjs",
         "envFile": "apps/api/.env.serve"
       }
     },

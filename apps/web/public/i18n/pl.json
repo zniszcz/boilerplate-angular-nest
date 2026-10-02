@@ -8,7 +8,9 @@
       "email": "Email",
       "password": "Hasło",
       "submit": "Zaloguj",
-      "failed": "Logowanie nie powiodło się, spróbuj ponownie"
+      "failed": "Logowanie nie powiodło się, spróbuj ponownie",
+      "emailInvalid": "Podaj poprawny adres email",
+      "required": "To pole jest wymagane"
     },
     "logout": "Wyloguj"
   },

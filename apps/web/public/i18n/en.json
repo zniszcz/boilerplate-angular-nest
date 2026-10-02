@@ -8,7 +8,9 @@
       "email": "Email",
       "password": "Password",
       "submit": "Log in",
-      "failed": "Login failed, try again"
+      "failed": "Login failed, try again",
+      "emailInvalid": "Enter a valid email address",
+      "required": "This field is required"
     },
     "logout": "Log out"
   },

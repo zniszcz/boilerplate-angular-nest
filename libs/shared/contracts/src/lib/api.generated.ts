@@ -29,8 +29,28 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Checks email and password and sets the access token cookie. */
+    /** Checks email and password and sets both token cookies. */
     post: operations['LoginController_login'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Exchanges the refresh token cookie for new tokens. Permissions are read
+     *     from the database again, so a change applies from here on.
+     */
+    post: operations['LoginController_refresh'];
     delete?: never;
     options?: never;
     head?: never;
@@ -46,7 +66,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Removes the access token cookie. */
+    /** Ends the session and removes both cookies. */
     post: operations['LoginController_logout'];
     delete?: never;
     options?: never;
@@ -178,6 +198,25 @@ export interface operations {
         'application/json': components['schemas']['LoginDto'];
       };
     };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserDto'];
+        };
+      };
+    };
+  };
+  LoginController_refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       200: {
         headers: {

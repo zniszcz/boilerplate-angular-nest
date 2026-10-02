@@ -1,0 +1,12 @@
+/* Tailwind 4. Plain CSS, because Tailwind does not work through Sass. */
+@import 'tailwindcss';
+
+/* Class names are also read from the web libraries. */
+@source '../../../libs/web';
+
+@layer base {
+  body {
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-900);
+  }
+}

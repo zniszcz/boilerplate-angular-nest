@@ -1,6 +1,6 @@
 import type { Route } from '@angular/router';
 import { authGuard, guestGuard, LoginPage } from '@boilerplate/web-auth';
-import { HomePage } from './home/home-page';
+import { HomePage } from '@boilerplate/web-home';
 
 export const appRoutes: Route[] = [
   { path: '', component: HomePage, canActivate: [authGuard] },

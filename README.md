@@ -159,30 +159,43 @@ the port of `nx serve api` on your machine, set `PORT` in
 
 These need the [machine setup](#setup).
 
-| Command                                               | What it does                                                                |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| `pnpm dev`                                            | Runs the API and the web app with watchers                                  |
-| `pnpm build`                                          | Builds all apps                                                             |
-| `pnpm lint`                                           | Runs ESLint in all projects                                                 |
-| `pnpm format`                                         | Formats all files with Prettier                                             |
-| `pnpm format:check`                                   | Checks formatting without changing files                                    |
-| `pnpm contracts:generate`                             | Regenerates API types in `libs/shared/contracts`                            |
-| `pnpm contracts:check`                                | Fails when the generated API types are out of date                          |
-| `pnpm nx run api:migrate`                             | Runs pending migrations                                                     |
-| `pnpm nx run api:migrate-revert`                      | Reverts the last migration                                                  |
-| `pnpm nx run api:migration-generate --name=AddOrders` | Generates a migration from the difference between entities and the database |
-| `pnpm nx run api:seed`                                | Writes permissions and the test account                                     |
+| Command                                                 | What it does                                                                |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `pnpm dev`                                              | Runs the API and the web app with watchers                                  |
+| `pnpm build`                                            | Builds all apps                                                             |
+| `pnpm lint`                                             | Runs ESLint in all projects                                                 |
+| `pnpm format`                                           | Formats all files with Prettier                                             |
+| `pnpm format:check`                                     | Checks formatting without changing files                                    |
+| `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                            |
+| `pnpm contracts:check`                                  | Fails when the generated API types are out of date                          |
+| `pnpm nx run api:migrate`                               | Runs pending migrations                                                     |
+| `pnpm nx run api:migrate-revert`                        | Reverts the last migration                                                  |
+| `pnpm nx run api:migration-generate [--name=AddOrders]` | Generates a migration from the difference between entities and the database |
+| `pnpm nx run api:seed`                                  | Writes permissions and the test account                                     |
 
 ## Database
 
 - The schema changes only through migration files. Automatic sync
   (`synchronize`) is never on, in any environment.
-- A migration is generated against the local database, so run
-  `pnpm nx run api:migrate` first, then change entities, then generate.
-  Read the generated file before committing it.
-- Add every new migration to `apps/api/src/database/migrations/index.ts`.
-  The build bundles migrations from that list, so a migration missing there
-  never runs.
+- Migration files are named `<timestamp>-<Name>.ts`. The build bundles every
+  such file in `apps/api/src/database/migrations`, so a new migration needs no
+  registration, and TypeORM runs them in timestamp order.
+- The generator compares entities with the local database, so the database
+  must be up to date before you generate.
+
+### Adding a migration
+
+1. Start the database: `docker compose up -d`.
+2. Bring it up to date: `pnpm nx run api:migrate`.
+3. Change the entity. A new entity also goes on its module's entity list,
+   such as `USERS_ENTITIES`.
+4. Generate: `pnpm nx run api:migration-generate --name=AddPhone`. Without
+   `--name` the migration is called `Migration`.
+5. Read the generated SQL.
+6. Run it: `pnpm nx run api:migrate`. Check that it reverts:
+   `pnpm nx run api:migrate-revert`, then `migrate` again.
+7. Commit the entity and the migration together.
+
 - Migrations run before the API starts: in Docker Compose in the `api`
   command, in the cluster in an initContainer of the same image
   (`node migrate.js`). A failed migration stops the new version, and the old
@@ -198,21 +211,34 @@ These need the [machine setup](#setup).
 
 ## Authentication
 
-- `POST /api/auth/login` sets a JWT access token, valid for 15 minutes, in
-  the `access_token` cookie and returns the user. `POST /api/auth/logout`
-  removes the cookie. There are no refresh tokens yet.
-- The token is never in a response body. The cookie is `HttpOnly`, so page
-  scripts cannot read it and an XSS attack cannot steal it, and
-  `SameSite=Strict`, so other sites cannot send it, which blocks CSRF. This
+- Two tokens, both in httpOnly cookies:
+  - the access token, a JWT valid for 15 minutes, sent with every request to
+    `/api`. Checking it needs no database, so the API stays stateless for
+    almost every request;
+  - the refresh token, valid for 30 days, sent only to `/api/auth`. It is
+    stored hashed in `refresh_tokens`, so a session can be ended.
+- `POST /api/auth/login` sets both cookies and returns the user.
+  `POST /api/auth/refresh` exchanges the refresh token for new tokens and
+  reads permissions from the database again. `POST /api/auth/logout` ends the
+  session and removes both cookies.
+- Rotation: every refresh token can be used once. Using an exchanged token
+  again means it was stolen, so the whole session (token family) is revoked.
+  A reuse within 30 seconds is two tabs refreshing at once and is only
+  refused.
+- The web app refreshes on its own: a 401 triggers one shared refresh, then
+  the request is repeated. When that fails, the user goes to `/login`.
+- Tokens are never in a response body. The cookies are `HttpOnly`, so page
+  scripts cannot read them and an XSS attack cannot steal them, and
+  `SameSite=Strict`, so other sites cannot send them, which blocks CSRF. This
   works because the web app and the API share one domain.
-- The cookie is `Secure` when `NODE_ENV=production`, which the prod image
+- The cookies are `Secure` when `NODE_ENV=production`, which the prod image
   sets. Locally there is no HTTPS, so it is not.
-- Clients that are not browsers can send the token in an
+- Clients that are not browsers can send the access token in an
   `Authorization: Bearer` header instead.
 - Every route needs a token. Mark open routes with `@Public()`.
 - `@RequirePermissions('users:read')` allows a route only to users with that
-  permission. Permissions travel in the token, so a change takes effect when
-  the user logs in again, at most after 15 minutes.
+  permission. Permissions travel in the access token, so a change takes
+  effect at the next refresh, at most after 15 minutes.
 - Add new permissions in `libs/api/users/src/lib/permissions.ts`. The seed
   command writes them to the database.
 - Passwords are hashed with scrypt, built into Node.js.
@@ -264,6 +290,19 @@ its own texts.
 
 ## Web app
 
+Components follow atomic design. Code goes by what it does:
+
+| Place                | Contains                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `libs/web/ui`        | Presentational components only: `atoms`, `molecules`, `organisms`, `templates`. Data comes in through inputs, events go out through outputs. No store, HTTP or router. Texts may use the transloco pipe |
+| `libs/web/<feature>` | Pages, such as `libs/web/auth` and `libs/web/home`. They connect stores to organisms and have no look of their own                                                                                      |
+| `libs/web/i18n`      | Transloco setup and the language switcher                                                                                                                                                               |
+| `apps/web`           | Configuration, routes and an empty root component that only composes                                                                                                                                    |
+
+- Styling is Tailwind 4, utility classes in templates. It is mobile first:
+  plain classes are for phones, `sm:` and `md:` add to bigger screens.
+  `apps/web/src/styles.css` is plain CSS, because Tailwind does not work
+  through Sass, and it reads classes from `libs/web`.
 - State lives in NgRx Signal Store. `AuthStore` in `libs/web/auth` keeps the
   logged in user. It asks `/api/users/me` once when the app starts, so route
   guards know the answer.
@@ -272,7 +311,9 @@ its own texts.
 - The dev server passes `/api` to the API (`apps/web/proxy.conf.mjs`), so
   locally the app uses one address, like in the cluster. `API_PROXY_TARGET`
   points it elsewhere; Docker Compose sets `http://api:3000`.
-- A 401 from any request while logged in sends the user to `/login`.
+- No `subscribe()` whose subscription is dropped, because it never ends and
+  leaks memory. Use `toSignal`, the `async` pipe or `takeUntilDestroyed()`.
+  ESLint checks it with `rxjs-x/no-ignored-subscription`.
 
 ## Production images
 
@@ -318,8 +359,8 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 | Bootstrapping and wiring of the backend  | `apps/api`                                                    |
 | Bootstrapping and wiring of the frontend | `apps/web`                                                    |
 | Backend logic                            | `libs/api/<domain>`, one library per domain                   |
-| Frontend features                        | `libs/web/<feature>`, for example `libs/web/auth`             |
-| Shared UI components                     | `libs/web/ui`                                                 |
+| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`             |
+| Presentational components                | `libs/web/ui`, see [Web app](#web-app)                        |
 | API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
 
 - Apps stay thin. Logic lives in libraries, because Nx checks the allowed
