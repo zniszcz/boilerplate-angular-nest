@@ -186,10 +186,10 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 ### Health checks
 
-| Path                | Probe     | Checks                                      |
-| ------------------- | --------- | ------------------------------------------- |
-| `/api/health/live`  | liveness  | only that the process answers               |
-| `/api/health/ready` | readiness | everything the app cannot work without      |
+| Path                | Probe     | Checks                                 |
+| ------------------- | --------- | -------------------------------------- |
+| `/api/health/live`  | liveness  | only that the process answers          |
+| `/api/health/ready` | readiness | everything the app cannot work without |
 
 - Liveness never checks dependencies. A failed liveness probe restarts the
   pod, and when the database is down that restarts every pod without fixing
