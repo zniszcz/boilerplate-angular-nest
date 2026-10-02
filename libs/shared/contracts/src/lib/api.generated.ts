@@ -29,8 +29,25 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Exchanges email and password for an access token. */
+    /** Checks email and password and sets the access token cookie. */
     post: operations['LoginController_login'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Removes the access token cookie. */
+    post: operations['LoginController_logout'];
     delete?: never;
     options?: never;
     head?: never;
@@ -115,12 +132,6 @@ export interface components {
       email: string;
       password: string;
     };
-    TokenDto: {
-      /** @description Send it as `Authorization: Bearer <token>`. */
-      accessToken: string;
-      /** @description Seconds until the token expires. */
-      expiresIn: number;
-    };
     UserDto: {
       id: string;
       email: string;
@@ -173,8 +184,25 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['TokenDto'];
+          'application/json': components['schemas']['UserDto'];
         };
+      };
+    };
+  };
+  LoginController_logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

@@ -1,2 +1,16 @@
-<h1>{{ hello.message }}</h1>
-<router-outlet></router-outlet>
+<header>
+  <label>
+    {{ 'app.language' | transloco }}
+    <select #select (change)="setLanguage(select.value)">
+      @for (language of languages; track language) {
+        <option [value]="language" [selected]="language === activeLanguage()">
+          {{ language }}
+        </option>
+      }
+    </select>
+  </label>
+</header>
+
+<main>
+  <router-outlet />
+</main>

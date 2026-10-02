@@ -50,6 +50,9 @@
       "continuous": true,
       "executor": "@angular/build:dev-server",
       "defaultConfiguration": "development",
+      "options": {
+        "proxyConfig": "apps/web/proxy.conf.mjs"
+      },
       "configurations": {
         "production": {
           "buildTarget": "web:build:production"

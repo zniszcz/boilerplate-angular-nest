@@ -44,10 +44,11 @@ run_api() {
   wait_for "$B/health/live"
 }
 
-login() {
-  curl -fs -H 'content-type: application/json' \
+# Logs in and prints the Set-Cookie header of the answer.
+login_cookie() {
+  curl -fs -o /dev/null -D - -H 'content-type: application/json' \
     -d '{"email":"admin@example.com","password":"admin"}' "$B/auth/login" \
-    | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'
+    | grep -i '^set-cookie: access_token='
 }
 
 # A valid token for a user without permissions, signed with the test secret.
@@ -122,17 +123,32 @@ pass "wrong password is rejected"
   || fail "unknown body field accepted"
 pass "unknown body fields are rejected"
 
-token=$(login)
-[ -n "$token" ] || fail "login"
-me=$(curl -fs -H "authorization: Bearer $token" "$B/users/me") || fail "users/me"
+set_cookie=$(login_cookie) || fail "login sets no access_token cookie"
+for flag in HttpOnly SameSite=Strict Secure; do
+  grep -qi "$flag" <<<"$set_cookie" || fail "access_token cookie without $flag"
+done
+pass "login sets an HttpOnly, SameSite=Strict, Secure cookie"
+cookie="Cookie: $(sed -n 's/^[Ss]et-[Cc]ookie: \(access_token=[^;]*\).*/\1/p' <<<"$set_cookie")"
+me=$(curl -fs -H "$cookie" "$B/users/me") || fail "users/me"
 grep -q '"email":"admin@example.com"' <<<"$me" || fail "users/me answer"
-grep -qi 'password' <<<"$me" && fail "users/me returns a password field"
-pass "login works and users/me has no password field"
-[ "$(status -H "authorization: Bearer $token" "$B/users")" = 200 ] \
-  || fail "users list with users:read"
+grep -qi 'password\|token' <<<"$me" && fail "users/me returns a password or token field"
+pass "the cookie logs in and users/me has no password field"
+[ "$(status -H "$cookie" "$B/users")" = 200 ] || fail "users list with users:read"
 [ "$(status -H "authorization: Bearer $(token_without_permissions)" "$B/users")" = 403 ] \
   || fail "users list without users:read"
 pass "users:read permission is enforced"
+
+curl -fs -o /dev/null -D - -X POST "$B/auth/logout" \
+  | grep -qi '^set-cookie: access_token=;' || fail "logout does not clear the cookie"
+pass "logout clears the cookie"
+
+curl -s -H 'content-type: application/json' -H 'accept-language: pl' \
+  -d '{"email":"admin@example.com","password":"wrong"}' "$B/auth/login" \
+  | grep -q 'Nieprawidłowy' || fail "error not translated to Polish"
+curl -s -H 'content-type: application/json' \
+  -d '{"email":"nope","password":"x"}' "$B/auth/login" \
+  | grep -q 'must be an email address' || fail "English is not the default"
+pass "errors follow Accept-Language, English by default"
 
 docker exec prod-test-api sh -c 'echo media-ok > /app/media/test.txt' \
   || fail "media volume not writable"
@@ -169,5 +185,11 @@ pass "Angular routes fall back to index.html"
 curl -fsI "http://127.0.0.1:$WEB_PORT/" | grep -qi 'cache-control: no-cache' \
   || fail "index.html is cached"
 pass "index.html is not cached"
+
+for language in en pl; do
+  curl -fs "http://127.0.0.1:$WEB_PORT/i18n/$language.json" | grep -q '"auth"' \
+    || fail "no $language translations in the web image"
+done
+pass "translations are in the web image"
 
 echo "All checks passed."

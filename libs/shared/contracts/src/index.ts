@@ -7,5 +7,4 @@ export type { paths } from './lib/api.generated';
 type Schemas = components['schemas'];
 export type HelloDto = Schemas['HelloDto'];
 export type LoginDto = Schemas['LoginDto'];
-export type TokenDto = Schemas['TokenDto'];
 export type UserDto = Schemas['UserDto'];

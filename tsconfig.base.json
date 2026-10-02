@@ -16,7 +16,8 @@
     "paths": {
       "@boilerplate/contracts": ["./libs/shared/contracts/src/index.ts"],
       "@boilerplate/api-users": ["./libs/api/users/src/index.ts"],
-      "@boilerplate/api-auth": ["./libs/api/auth/src/index.ts"]
+      "@boilerplate/api-auth": ["./libs/api/auth/src/index.ts"],
+      "@boilerplate/web-auth": ["./libs/web/auth/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -1,5 +1,5 @@
 import { Controller, Get, NotFoundException } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCookieAuth } from '@nestjs/swagger';
 import {
   type AuthUser,
   CurrentUser,
@@ -9,7 +9,7 @@ import { UserDto } from './dto/user.dto';
 import { PERMISSIONS } from './permissions';
 import { UsersService } from './users.service';
 
-@ApiBearerAuth()
+@ApiCookieAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

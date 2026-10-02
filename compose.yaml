@@ -135,6 +135,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: dev
+    environment:
+      API_PROXY_TARGET: http://api:3000
     ports:
       - '127.0.0.1:${WEB_PORT:-4200}:4200'
     develop:

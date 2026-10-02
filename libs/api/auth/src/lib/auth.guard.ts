@@ -9,11 +9,14 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import type { AccessTokenClaims, AuthUser } from './auth-user';
+import { ACCESS_TOKEN_COOKIE } from './cookie';
 import { IS_PUBLIC, REQUIRED_PERMISSIONS } from './decorators';
 
 /**
  * Registered globally: every route needs a valid access token unless it is
  * marked with @Public(). Then checks @RequirePermissions().
+ * The token comes from the cookie, or from an `Authorization: Bearer` header
+ * for clients that are not browsers.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -31,8 +34,8 @@ export class AuthGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<Request & { user?: AuthUser }>();
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    if (type !== 'Bearer' || !token) {
+    const token = readToken(request);
+    if (!token) {
       throw new UnauthorizedException();
     }
     let claims: AccessTokenClaims;
@@ -58,4 +61,15 @@ export class AuthGuard implements CanActivate {
     }
     return true;
   }
+}
+
+function readToken(request: Request): string | undefined {
+  const cookie = (request.cookies as Record<string, string> | undefined)?.[
+    ACCESS_TOKEN_COOKIE
+  ];
+  if (cookie) {
+    return cookie;
+  }
+  const [type, token] = request.headers.authorization?.split(' ') ?? [];
+  return type === 'Bearer' ? token : undefined;
 }

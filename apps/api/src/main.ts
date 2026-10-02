@@ -1,7 +1,9 @@
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import { I18nValidationExceptionFilter, I18nValidationPipe } from 'nestjs-i18n';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
 import { logLevelsFromEnv } from './config/log-level';
@@ -14,9 +16,14 @@ async function bootstrap() {
   });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-  // Rejects bodies with fields the DTO does not declare.
+  app.use(cookieParser());
+  // Rejects bodies with fields the DTO does not declare. Messages are
+  // translated to the language of the request.
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new I18nValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
+  app.useGlobalFilters(
+    new I18nValidationExceptionFilter({ detailedErrors: false }),
   );
 
   // Local and test environments only, never on production.

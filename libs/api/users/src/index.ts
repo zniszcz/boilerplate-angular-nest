@@ -1,5 +1,4 @@
 export * from './lib/dto/login.dto';
-export * from './lib/dto/token.dto';
 export * from './lib/dto/user.dto';
 export * from './lib/permission.entity';
 export * from './lib/permissions';

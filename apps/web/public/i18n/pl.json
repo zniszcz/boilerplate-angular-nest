@@ -1,0 +1,19 @@
+{
+  "app": {
+    "language": "Język"
+  },
+  "auth": {
+    "login": {
+      "title": "Logowanie",
+      "email": "Email",
+      "password": "Hasło",
+      "submit": "Zaloguj",
+      "failed": "Logowanie nie powiodło się, spróbuj ponownie"
+    },
+    "logout": "Wyloguj"
+  },
+  "home": {
+    "greeting": "Zalogowano jako {{ email }}",
+    "permissions": "Uprawnienia"
+  }
+}

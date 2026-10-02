@@ -1,0 +1,12 @@
+<p>{{ 'home.greeting' | transloco: { email: auth.user()?.email } }}</p>
+
+<h2>{{ 'home.permissions' | transloco }}</h2>
+<ul>
+  @for (permission of auth.permissions(); track permission) {
+    <li>{{ permission }}</li>
+  }
+</ul>
+
+<button type="button" (click)="logout()">
+  {{ 'auth.logout' | transloco }}
+</button>

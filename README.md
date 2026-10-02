@@ -128,6 +128,7 @@ pnpm install       # installs dependencies and the git hooks
 | `SWAGGER_ENABLED`                       | `true` turns on Swagger at `/api/docs`. Off on production                         | `true`                       | `true`                       |
 | `JWT_SECRET`                            | Key that signs access tokens. Required                                            | local dev key                | local dev key                |
 | `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` | Test account written by the seed command                                          | `admin@example.com`, `admin` | `admin@example.com`, `admin` |
+| `API_PROXY_TARGET`                      | Where the web dev server sends `/api`                                             | `http://localhost:3000`      | `http://api:3000`            |
 
 Outside Docker, Nx loads environment files for `nx serve api` in this order,
 and the first value found wins:
@@ -197,8 +198,17 @@ These need the [machine setup](#setup).
 
 ## Authentication
 
-- `POST /api/auth/login` returns a JWT access token valid for 15 minutes.
-  There are no refresh tokens yet.
+- `POST /api/auth/login` sets a JWT access token, valid for 15 minutes, in
+  the `access_token` cookie and returns the user. `POST /api/auth/logout`
+  removes the cookie. There are no refresh tokens yet.
+- The token is never in a response body. The cookie is `HttpOnly`, so page
+  scripts cannot read it and an XSS attack cannot steal it, and
+  `SameSite=Strict`, so other sites cannot send it, which blocks CSRF. This
+  works because the web app and the API share one domain.
+- The cookie is `Secure` when `NODE_ENV=production`, which the prod image
+  sets. Locally there is no HTTPS, so it is not.
+- Clients that are not browsers can send the token in an
+  `Authorization: Bearer` header instead.
 - Every route needs a token. Mark open routes with `@Public()`.
 - `@RequirePermissions('users:read')` allows a route only to users with that
   permission. Permissions travel in the token, so a change takes effect when
@@ -226,6 +236,43 @@ Backend DTO classes (`*.dto.ts`) are the single source of truth for the API:
   never leaves the backend.
 - Run `pnpm contracts:generate` after changing a DTO or a route, and commit
   the generated file. CI will run `pnpm contracts:check`.
+
+### API compatibility
+
+The web app and the API deploy together, so they always match. The only gap
+is a browser that still has the old web app open after a deployment.
+
+- The API has no version in the path (`/api/v1`). NestJS versioning will be
+  turned on when there is an outside client, such as a mobile app.
+- Changes stay backward compatible: add fields at once, remove or rename them
+  only in a later deployment.
+
+## Translations
+
+English is the default language, Polish the second one. Each side translates
+its own texts.
+
+- Web app: Transloco, texts in `apps/web/public/i18n/<language>.json`. The
+  language changes without a reload and the choice is remembered in the
+  browser. One build serves every language.
+- API: nestjs-i18n, texts in `apps/api/src/i18n/<language>/<file>.json`, used
+  as `<file>.<key>`. The language comes from the `Accept-Language` header,
+  which the web app sends with every request. Validation messages in DTOs use
+  `i18nValidationMessage('validation.<key>')`.
+- A new language needs a file on both sides and an entry in `LANGUAGES` in
+  `apps/web/src/app/i18n.ts`.
+
+## Web app
+
+- State lives in NgRx Signal Store. `AuthStore` in `libs/web/auth` keeps the
+  logged in user. It asks `/api/users/me` once when the app starts, so route
+  guards know the answer.
+- The app calls the API with Angular `HttpClient` and relative paths, such as
+  `/api/users/me`, typed with `@boilerplate/contracts`.
+- The dev server passes `/api` to the API (`apps/web/proxy.conf.mjs`), so
+  locally the app uses one address, like in the cluster. `API_PROXY_TARGET`
+  points it elsewhere; Docker Compose sets `http://api:3000`.
+- A 401 from any request while logged in sends the user to `/login`.
 
 ## Production images
 
@@ -271,6 +318,7 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 | Bootstrapping and wiring of the backend  | `apps/api`                                                    |
 | Bootstrapping and wiring of the frontend | `apps/web`                                                    |
 | Backend logic                            | `libs/api/<domain>`, one library per domain                   |
+| Frontend features                        | `libs/web/<feature>`, for example `libs/web/auth`             |
 | Shared UI components                     | `libs/web/ui`                                                 |
 | API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
 

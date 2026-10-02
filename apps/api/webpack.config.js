@@ -35,7 +35,7 @@ module.exports = {
         },
       ],
       tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
+      assets: ['./src/assets', './src/i18n'],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
