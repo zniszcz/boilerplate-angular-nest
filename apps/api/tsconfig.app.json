@@ -7,7 +7,10 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "target": "es2021",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // Helpers are inlined. Nx does not see a tslib import, so it would leave
+    // tslib out of the generated package.json and the image would not start.
+    "importHelpers": false
   },
   "include": ["src/**/*.ts"]
 }

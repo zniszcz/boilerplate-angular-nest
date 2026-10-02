@@ -18,3 +18,14 @@ ENV NX_DAEMON=true
 COPY . .
 EXPOSE 4200
 CMD ["pnpm", "nx", "serve", "web", "--host", "0.0.0.0"]
+
+# Production build of static files.
+FROM deps AS build
+COPY . .
+RUN pnpm nx build web
+
+# Image deployed to the cluster: nginx without root, listening on 8080.
+FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24 AS prod
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/apps/web/browser /usr/share/nginx/html
+EXPOSE 8080

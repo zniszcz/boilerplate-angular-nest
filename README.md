@@ -163,6 +163,43 @@ These need the [machine setup](#setup).
 | `pnpm format`       | Formats all files with Prettier            |
 | `pnpm format:check` | Checks formatting without changing files   |
 
+## Production images
+
+Each app has one Dockerfile with separate stages. Docker Compose uses the
+`dev` stage, the cluster gets the `prod` stage. Both start from the same
+dependency stage, so Node.js and the lockfile are the same in both.
+
+```sh
+scripts/test-prod-images.sh   # builds both prod images and checks them
+```
+
+- `prod` images are based on Alpine and run without root. They contain only
+  the built code and runtime dependencies, no watchers or dev tools.
+- The image does not set the log level. `LOG_LEVEL` comes from Compose
+  (`debug`) or from the cluster manifest (`info`).
+- The web image is nginx with static files. It does not proxy `/api`,
+  because in the cluster the ingress sends `/api` to the API and everything
+  else to the web app, under one domain.
+- Only the API mounts the media volume at `/app/media` and serves its files
+  under `/api/media/`. The API does not start when the directory is not
+  writable, because that is a configuration error a restart will not fix.
+
+### Health checks
+
+| Path                | Probe     | Checks                                      |
+| ------------------- | --------- | ------------------------------------------- |
+| `/api/health/live`  | liveness  | only that the process answers               |
+| `/api/health/ready` | readiness | everything the app cannot work without      |
+
+- Liveness never checks dependencies. A failed liveness probe restarts the
+  pod, and when the database is down that restarts every pod without fixing
+  anything.
+- A failed readiness probe only stops traffic to the pod. Optional services,
+  such as feature flags or error tracking, are reported as `degraded`, which
+  keeps the answer at 200.
+- Logs are not checked. The app writes them to stdout and the cluster
+  collects them.
+
 ## Where code goes
 
 | Code                                     | Place                                                         |
