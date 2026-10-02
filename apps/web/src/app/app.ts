@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import type { HelloResponse } from '@boilerplate/contracts';
+import type { HelloDto } from '@boilerplate/contracts';
 
 @Component({
   imports: [RouterModule],
@@ -9,5 +9,5 @@ import type { HelloResponse } from '@boilerplate/contracts';
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly hello: HelloResponse = { message: 'Hello web' };
+  protected readonly hello: HelloDto = { message: 'Hello web' };
 }

@@ -6,6 +6,8 @@ allowBuilds:
   nx: true
   unrs-resolver: true
   '@nestjs/core': false
+  # Usage telemetry of swagger-ui-dist, not needed.
+  '@scarf/scarf': false
   esbuild: true
   lmdb: true
   msgpackr-extract: true

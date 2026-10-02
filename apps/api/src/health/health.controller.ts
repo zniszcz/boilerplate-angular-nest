@@ -1,5 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
+import {
+  HealthCheck,
+  HealthCheckService,
+  TypeOrmHealthIndicator,
+} from '@nestjs/terminus';
+import { Public } from '@boilerplate/api-auth';
 import { MediaHealthIndicator } from './media.health';
 
 /**
@@ -10,11 +15,13 @@ import { MediaHealthIndicator } from './media.health';
  *   traffic to the pod. Optional services go here as `degraded`, which keeps
  *   the answer at 200.
  */
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     private readonly media: MediaHealthIndicator,
+    private readonly database: TypeOrmHealthIndicator,
   ) {}
 
   @Get('live')
@@ -26,6 +33,9 @@ export class HealthController {
   @Get('ready')
   @HealthCheck()
   ready() {
-    return this.health.check([() => this.media.isWritable('media')]);
+    return this.health.check([
+      () => this.database.pingCheck('database'),
+      () => this.media.isWritable('media'),
+    ]);
   }
 }

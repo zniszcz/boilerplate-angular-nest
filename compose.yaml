@@ -89,12 +89,24 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
       target: dev
+    # Like in the cluster, migrations run before the API starts.
+    command:
+      [
+        sh,
+        -c,
+        'pnpm nx run api:migrate && pnpm nx run api:seed && pnpm nx serve api',
+      ]
     environment:
       PORT: 3000
       LOG_LEVEL: debug
       MEDIA_DIR: /app/media
       DATABASE_URL: postgres://app:app@postgres:5432/app
       REDIS_URL: redis://app:app@valkey:6379
+      SWAGGER_ENABLED: 'true'
+      # Local development values only. In the cluster they come from 1Password.
+      JWT_SECRET: local-dev-jwt-secret
+      SEED_USER_EMAIL: admin@example.com
+      SEED_USER_PASSWORD: admin
     ports:
       - '127.0.0.1:${API_PORT:-3000}:3000'
     volumes:

@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
-# Builds the production images and checks them the way the cluster runs them.
+# Builds the production images and checks them the way the cluster runs them:
+# migrations and seed first, as an initContainer would, then the API.
 # Usage: scripts/test-prod-images.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 API=boilerplate-api:prod
 WEB=boilerplate-web:prod
+NETWORK=boilerplate-prod-test
 VOLUME=boilerplate-media-test
 API_PORT=13000
 WEB_PORT=18080
+JWT_SECRET=prod-test-secret
+B="http://127.0.0.1:$API_PORT/api"
 
 cleanup() {
-  docker rm -f prod-test-api prod-test-web >/dev/null 2>&1 || true
+  docker rm -f prod-test-api prod-test-web prod-test-db >/dev/null 2>&1 || true
   docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  docker network rm "$NETWORK" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 cleanup
@@ -25,48 +30,127 @@ wait_for() {
   fail "no answer from $1"
 }
 
-run_api() {
-  docker run -d --name prod-test-api -e LOG_LEVEL=info \
-    -v "$VOLUME:/app/media" -p "127.0.0.1:$API_PORT:3000" "$API" >/dev/null
-  wait_for "http://127.0.0.1:$API_PORT/api"
+# Runs the API image with the environment the cluster will give it.
+api() {
+  docker run --network "$NETWORK" -e LOG_LEVEL=info \
+    -e DATABASE_URL=postgres://app:app@prod-test-db:5432/app \
+    -e JWT_SECRET="$JWT_SECRET" \
+    -e SEED_USER_EMAIL=admin@example.com -e SEED_USER_PASSWORD=admin "$@"
 }
+
+run_api() {
+  api -d --name prod-test-api -v "$VOLUME:/app/media" \
+    -p "127.0.0.1:$API_PORT:3000" "$@" "$API" >/dev/null
+  wait_for "$B/health/live"
+}
+
+login() {
+  curl -fs -H 'content-type: application/json' \
+    -d '{"email":"admin@example.com","password":"admin"}' "$B/auth/login" \
+    | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'
+}
+
+# A valid token for a user without permissions, signed with the test secret.
+token_without_permissions() {
+  node -e '
+    const { createHmac } = require("node:crypto");
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const now = Math.floor(Date.now() / 1000);
+    const body = b64({ alg: "HS256", typ: "JWT" }) + "." +
+      b64({ sub: "x", email: "x@example.com", permissions: [], iat: now, exp: now + 60 });
+    const sig = createHmac("sha256", process.argv[1]).update(body).digest("base64url");
+    console.log(body + "." + sig);' "$JWT_SECRET"
+}
+
+status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 
 docker build -q -f apps/api/Dockerfile --target prod -t "$API" . >/dev/null
 docker build -q -f apps/web/Dockerfile --target prod -t "$WEB" . >/dev/null
 pass "images built"
+
+docker network create "$NETWORK" >/dev/null
+docker run -d --name prod-test-db --network "$NETWORK" \
+  -e POSTGRES_USER=app -e POSTGRES_PASSWORD=app -e POSTGRES_DB=app \
+  postgres:18.6 >/dev/null
+for _ in $(seq 30); do
+  docker exec prod-test-db pg_isready -U app -d app >/dev/null 2>&1 && break
+  sleep 1
+done
 
 # Backend
 docker run --rm --entrypoint sh "$API" -c 'grep -q "^ID=alpine" /etc/os-release' \
   || fail "api image is not Alpine"
 pass "api image is Alpine"
 
+api --rm "$API" node migrate.js | grep -q 'Migrations run: Init' \
+  || fail "migrations"
+api --rm "$API" node migrate.js | grep -q 'Migrations run: none' \
+  || fail "second migration run is not a no-op"
+pass "migrations run once"
+api --rm "$API" node seed.js >/dev/null && api --rm "$API" node seed.js >/dev/null \
+  || fail "seed"
+pass "seed can run many times"
+
 run_api
 [ "$(docker exec prod-test-api id -un)" = node ] || fail "api runs as root"
 pass "api runs as node"
 
-curl -fs "http://127.0.0.1:$API_PORT/api" | grep -q 'Hello API' || fail "api answer"
+curl -fs "$B" | grep -q 'Hello API' || fail "api answer"
 pass "api answers"
 
-curl -fs "http://127.0.0.1:$API_PORT/api/health/live" | grep -q '"status":"ok"' \
-  || fail "liveness probe"
+curl -fs "$B/health/live" | grep -q '"status":"ok"' || fail "liveness probe"
 pass "liveness probe answers"
-curl -fs "http://127.0.0.1:$API_PORT/api/health/ready" | grep -q '"media":{"status":"up"' \
-  || fail "readiness probe does not report media as up"
-pass "readiness probe reports media as up"
+ready=$(curl -fs "$B/health/ready") || fail "readiness probe"
+grep -q '"database":{[^}]*"status":"up"' <<<"$ready" || fail "readiness: database"
+grep -q '"media":{"status":"up"' <<<"$ready" || fail "readiness: media"
+pass "readiness probe reports database and media as up"
 
 docker logs prod-test-api 2>&1 | grep -q 'Log levels' && fail "debug log at LOG_LEVEL=info"
 pass "LOG_LEVEL=info hides debug logs"
 
+[ "$(status "$B/docs")" = 404 ] || fail "Swagger is on without SWAGGER_ENABLED"
+pass "Swagger is off by default"
+
+[ "$(status "$B/users/me")" = 401 ] || fail "users/me without a token"
+pass "routes need a token"
+[ "$(status -H 'content-type: application/json' \
+  -d '{"email":"admin@example.com","password":"wrong"}' "$B/auth/login")" = 401 ] \
+  || fail "login with a wrong password"
+pass "wrong password is rejected"
+[ "$(status -H 'content-type: application/json' \
+  -d '{"email":"admin@example.com","password":"admin","admin":true}' "$B/auth/login")" = 400 ] \
+  || fail "unknown body field accepted"
+pass "unknown body fields are rejected"
+
+token=$(login)
+[ -n "$token" ] || fail "login"
+me=$(curl -fs -H "authorization: Bearer $token" "$B/users/me") || fail "users/me"
+grep -q '"email":"admin@example.com"' <<<"$me" || fail "users/me answer"
+grep -qi 'password' <<<"$me" && fail "users/me returns a password field"
+pass "login works and users/me has no password field"
+[ "$(status -H "authorization: Bearer $token" "$B/users")" = 200 ] \
+  || fail "users list with users:read"
+[ "$(status -H "authorization: Bearer $(token_without_permissions)" "$B/users")" = 403 ] \
+  || fail "users list without users:read"
+pass "users:read permission is enforced"
+
 docker exec prod-test-api sh -c 'echo media-ok > /app/media/test.txt' \
   || fail "media volume not writable"
 docker rm -f prod-test-api >/dev/null
-run_api
-[ "$(curl -fs "http://127.0.0.1:$API_PORT/api/media/test.txt")" = media-ok ] \
-  || fail "media file lost after restart"
+run_api -e SWAGGER_ENABLED=true
+[ "$(curl -fs "$B/media/test.txt")" = media-ok ] || fail "media file lost after restart"
 pass "media file survives restart and is served"
+[ "$(status "$B/docs")" = 200 ] || fail "Swagger with SWAGGER_ENABLED=true"
+pass "SWAGGER_ENABLED=true turns Swagger on"
+
+docker stop prod-test-db >/dev/null
+[ "$(status "$B/health/ready")" = 503 ] || fail "readiness with the database down"
+[ "$(status "$B/health/live")" = 200 ] || fail "liveness depends on the database"
+pass "database down: not ready, but still live"
+docker start prod-test-db >/dev/null
 docker rm -f prod-test-api >/dev/null
 
-docker run --rm -v "$VOLUME:/app/media:ro" "$API" >/dev/null 2>&1 \
+api --rm -v "$VOLUME:/app/media:ro" "$API" >/dev/null 2>&1 \
   && fail "api starts with read-only media"
 pass "api refuses to start with read-only media"
 

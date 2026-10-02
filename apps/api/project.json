@@ -58,6 +58,38 @@
           "buildTarget": "api:build:production"
         }
       }
+    },
+    "migrate": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/apps/api/migrate.js",
+        "envFile": "apps/api/.env.serve"
+      }
+    },
+    "migrate-revert": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/apps/api/migrate.js revert",
+        "envFile": "apps/api/.env.serve"
+      }
+    },
+    "migration-generate": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "typeorm migration:generate -d dist/apps/api/data-source.js apps/api/src/database/migrations/{args.name} && prettier --write apps/api/src/database/migrations",
+        "envFile": "apps/api/.env.serve"
+      }
+    },
+    "seed": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/apps/api/seed.js",
+        "envFile": "apps/api/.env.serve"
+      }
     }
   },
   "tags": []

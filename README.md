@@ -118,13 +118,16 @@ pnpm install       # installs dependencies and the git hooks
 
 ### Configuration
 
-| Variable       | Meaning                                                                           | Default outside Docker | Default in Docker |
-| -------------- | --------------------------------------------------------------------------------- | ---------------------- | ----------------- |
-| `PORT`         | API port                                                                          | `3000`                 | `3000`            |
-| `LOG_LEVEL`    | `fatal`, `error`, `warn`, `log` (alias `info`), `debug` or `verbose`              | `debug`                | `debug`           |
-| `MEDIA_DIR`    | Directory for media files, the same path as in the cluster when running in Docker | `tmp/media`            | `/app/media`      |
-| `DATABASE_URL` | PostgreSQL connection string                                                      | Docker database        | Docker database   |
-| `REDIS_URL`    | Valkey connection string, in the format used by Redis clients                     | Docker Valkey          | Docker Valkey     |
+| Variable                                | Meaning                                                                           | Default outside Docker       | Default in Docker            |
+| --------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------- | ---------------------------- |
+| `PORT`                                  | API port                                                                          | `3000`                       | `3000`                       |
+| `LOG_LEVEL`                             | `fatal`, `error`, `warn`, `log` (alias `info`), `debug` or `verbose`              | `debug`                      | `debug`                      |
+| `MEDIA_DIR`                             | Directory for media files, the same path as in the cluster when running in Docker | `tmp/media`                  | `/app/media`                 |
+| `DATABASE_URL`                          | PostgreSQL connection string                                                      | Docker database              | Docker database              |
+| `REDIS_URL`                             | Valkey connection string, in the format used by Redis clients                     | Docker Valkey                | Docker Valkey                |
+| `SWAGGER_ENABLED`                       | `true` turns on Swagger at `/api/docs`. Off on production                         | `true`                       | `true`                       |
+| `JWT_SECRET`                            | Key that signs access tokens. Required                                            | local dev key                | local dev key                |
+| `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` | Test account written by the seed command                                          | `admin@example.com`, `admin` | `admin@example.com`, `admin` |
 
 Outside Docker, Nx loads environment files for `nx serve api` in this order,
 and the first value found wins:
@@ -155,13 +158,74 @@ the port of `nx serve api` on your machine, set `PORT` in
 
 These need the [machine setup](#setup).
 
-| Command             | What it does                               |
-| ------------------- | ------------------------------------------ |
-| `pnpm dev`          | Runs the API and the web app with watchers |
-| `pnpm build`        | Builds all apps                            |
-| `pnpm lint`         | Runs ESLint in all projects                |
-| `pnpm format`       | Formats all files with Prettier            |
-| `pnpm format:check` | Checks formatting without changing files   |
+| Command                                               | What it does                                                                |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `pnpm dev`                                            | Runs the API and the web app with watchers                                  |
+| `pnpm build`                                          | Builds all apps                                                             |
+| `pnpm lint`                                           | Runs ESLint in all projects                                                 |
+| `pnpm format`                                         | Formats all files with Prettier                                             |
+| `pnpm format:check`                                   | Checks formatting without changing files                                    |
+| `pnpm contracts:generate`                             | Regenerates API types in `libs/shared/contracts`                            |
+| `pnpm contracts:check`                                | Fails when the generated API types are out of date                          |
+| `pnpm nx run api:migrate`                             | Runs pending migrations                                                     |
+| `pnpm nx run api:migrate-revert`                      | Reverts the last migration                                                  |
+| `pnpm nx run api:migration-generate --name=AddOrders` | Generates a migration from the difference between entities and the database |
+| `pnpm nx run api:seed`                                | Writes permissions and the test account                                     |
+
+## Database
+
+- The schema changes only through migration files. Automatic sync
+  (`synchronize`) is never on, in any environment.
+- A migration is generated against the local database, so run
+  `pnpm nx run api:migrate` first, then change entities, then generate.
+  Read the generated file before committing it.
+- Add every new migration to `apps/api/src/database/migrations/index.ts`.
+  The build bundles migrations from that list, so a migration missing there
+  never runs.
+- Migrations run before the API starts: in Docker Compose in the `api`
+  command, in the cluster in an initContainer of the same image
+  (`node migrate.js`). A failed migration stops the new version, and the old
+  one keeps running.
+- Migrations and seed run at runtime, not at build time, because the build
+  has no database.
+- The seed command (`node seed.js`) writes all permissions and one test
+  account from `SEED_USER_EMAIL` and `SEED_USER_PASSWORD`. It runs locally and
+  on the test environment, never on production, because production must not
+  have an account with a known password. It can run many times.
+- `apps/api/src/database/data-source.ts` is the one database configuration
+  for the app, the migrate and seed commands and the TypeORM CLI.
+
+## Authentication
+
+- `POST /api/auth/login` returns a JWT access token valid for 15 minutes.
+  There are no refresh tokens yet.
+- Every route needs a token. Mark open routes with `@Public()`.
+- `@RequirePermissions('users:read')` allows a route only to users with that
+  permission. Permissions travel in the token, so a change takes effect when
+  the user logs in again, at most after 15 minutes.
+- Add new permissions in `libs/api/users/src/lib/permissions.ts`. The seed
+  command writes them to the database.
+- Passwords are hashed with scrypt, built into Node.js.
+- The password hash column has `select: false`, so ordinary queries never load
+  it. Only the login query asks for it.
+
+## API contracts
+
+Backend DTO classes (`*.dto.ts`) are the single source of truth for the API:
+
+1. `class-validator` decorators on DTOs validate incoming data. Fields the DTO
+   does not declare are rejected.
+2. The `@nestjs/swagger` build plugin turns DTOs and their doc comments into
+   the OpenAPI document, without describing fields by hand.
+3. `pnpm contracts:generate` writes TypeScript types from that document to
+   `libs/shared/contracts`, and the frontend imports them from
+   `@boilerplate/contracts`.
+
+- Entities never go to the API directly. A service copies an entity to a DTO
+  field by field, so a field that is not copied, such as a password hash,
+  never leaves the backend.
+- Run `pnpm contracts:generate` after changing a DTO or a route, and commit
+  the generated file. CI will run `pnpm contracts:check`.
 
 ## Production images
 
@@ -186,10 +250,10 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 ### Health checks
 
-| Path                | Probe     | Checks                                 |
-| ------------------- | --------- | -------------------------------------- |
-| `/api/health/live`  | liveness  | only that the process answers          |
-| `/api/health/ready` | readiness | everything the app cannot work without |
+| Path                | Probe     | Checks                                  |
+| ------------------- | --------- | --------------------------------------- |
+| `/api/health/live`  | liveness  | only that the process answers           |
+| `/api/health/ready` | readiness | database and a writable media directory |
 
 - Liveness never checks dependencies. A failed liveness probe restarts the
   pod, and when the database is down that restarts every pod without fixing
@@ -208,7 +272,7 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 | Bootstrapping and wiring of the frontend | `apps/web`                                                    |
 | Backend logic                            | `libs/api/<domain>`, one library per domain                   |
 | Shared UI components                     | `libs/web/ui`                                                 |
-| Types used by both frontend and backend  | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
+| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
 
 - Apps stay thin. Logic lives in libraries, because Nx checks the allowed
   dependencies (`@nx/enforce-module-boundaries`) between projects, not between

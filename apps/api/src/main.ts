@@ -1,10 +1,12 @@
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
 import { logLevelsFromEnv } from './config/log-level';
 import { mediaDirFromEnv } from './config/media-dir';
+import { createOpenApiDocument } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -12,6 +14,18 @@ async function bootstrap() {
   });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+  // Rejects bodies with fields the DTO does not declare.
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
+
+  // Local and test environments only, never on production.
+  const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
+  if (swaggerEnabled) {
+    SwaggerModule.setup(`${globalPrefix}/docs`, app, () =>
+      createOpenApiDocument(app),
+    );
+  }
 
   // Fail at startup, not on the first upload, when the volume is not writable.
   const mediaDir = mediaDirFromEnv();
@@ -26,6 +40,7 @@ async function bootstrap() {
   );
   Logger.debug(`Log levels: ${logLevelsFromEnv().join(', ')}`);
   Logger.debug(`Media directory: ${mediaDir}`);
+  Logger.debug(`Swagger: ${swaggerEnabled ? `/${globalPrefix}/docs` : 'off'}`);
   Logger.debug(
     `Database: ${process.env.DATABASE_URL?.replace(/:[^:@/]+@/, ':***@')}`,
   );

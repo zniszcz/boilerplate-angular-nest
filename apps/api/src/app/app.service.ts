@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { HelloResponse } from '@boilerplate/contracts';
+import type { HelloDto } from './hello.dto';
 
 @Injectable()
 export class AppService {
-  getData(): HelloResponse {
+  getData(): HelloDto {
     return { message: 'Hello API' };
   }
 }
