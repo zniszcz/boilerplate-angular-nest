@@ -38,6 +38,9 @@ matters more than performance. See
 
 ## Decisions
 
+- When a design or architectural decision is made during a conversation,
+  suggest writing an ADR for it and updating the `AGENTS.md` files it affects.
+  Suggest it, do not do it without approval.
 - A new architectural decision gets an ADR in `docs/adr`, from
   [template.md](docs/adr/template.md). Never edit an accepted ADR; supersede
   it with a new one.
