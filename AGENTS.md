@@ -34,17 +34,17 @@ Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`,
   Which tag may import which is defined only in `depConstraints` in
   `eslint.config.mjs`.
 
-  | Tag              | Meaning                                                           | Examples                       |
-  | ---------------- | ----------------------------------------------------------------- | ------------------------------ |
-  | `scope:api`      | runs in the backend                                               | `apps/api`, `libs/api/*`       |
-  | `scope:web`      | runs in the browser                                               | `apps/web`, `libs/web/*`       |
-  | `scope:shared`   | used by both sides, plain TypeScript                              | `libs/shared/contracts`        |
-  | `type:app`       | an application that only wires libraries together                 | `apps/api`, `apps/web`         |
-  | `type:domain`    | a backend bounded context in DDD layers, see `libs/api/AGENTS.md` | `users`, `authentication`      |
-  | `type:platform`  | technical code shared by many libraries, no domain model          | `libs/api/access`, `responses` |
-  | `type:feature`   | frontend pages or containers that connect state to components     | `libs/web/auth`, `i18n`        |
-  | `type:ui`        | presentational components only                                    | `libs/web/ui`                  |
-  | `type:contracts` | types shared by the frontend and the backend                      | `libs/shared/contracts`        |
+  | Tag              | Meaning                                                           | Examples                                 |
+  | ---------------- | ----------------------------------------------------------------- | ---------------------------------------- |
+  | `scope:api`      | runs in the backend                                               | `apps/api`, `libs/api/*`                 |
+  | `scope:web`      | runs in the browser                                               | `apps/web`, `libs/web/*`                 |
+  | `scope:shared`   | used by both sides, plain TypeScript                              | `libs/shared/contracts`                  |
+  | `type:app`       | an application that only wires libraries together                 | `apps/api`, `apps/web`, `apps/storybook` |
+  | `type:domain`    | a backend bounded context in DDD layers, see `libs/api/AGENTS.md` | `users`, `authentication`                |
+  | `type:platform`  | technical code shared by many libraries, no domain model          | `libs/api/access`, `responses`           |
+  | `type:feature`   | frontend pages or containers that connect state to components     | `libs/web/auth`, `i18n`                  |
+  | `type:ui`        | presentational components only                                    | `libs/web/ui`, `libs/web/helm`           |
+  | `type:contracts` | types shared by the frontend and the backend                      | `libs/shared/contracts`                  |
 
   A library that fits no tag is a sign of a missing decision: ask, and
   record the new tag in an ADR.

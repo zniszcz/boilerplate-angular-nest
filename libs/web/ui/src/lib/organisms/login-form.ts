@@ -5,8 +5,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { Button } from '../atoms/button';
-import { Input } from '../atoms/input';
+import { HlmButton } from '@boilerplate/web-helm/button';
+import { HlmInput } from '@boilerplate/web-helm/input';
 import { FormField } from '../molecules/form-field';
 
 export interface LoginFormValue {
@@ -17,7 +17,7 @@ export interface LoginFormValue {
 /** Validates the fields and emits them. Knows nothing about the API. */
 @Component({
   selector: 'app-login-form',
-  imports: [ReactiveFormsModule, TranslocoPipe, Button, Input, FormField],
+  imports: [ReactiveFormsModule, TranslocoPipe, HlmButton, HlmInput, FormField],
   template: `
     <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
       <h1 class="text-2xl font-semibold">
@@ -31,7 +31,7 @@ export interface LoginFormValue {
         "
       >
         <input
-          appInput
+          hlmInput
           type="email"
           formControlName="email"
           autocomplete="username"
@@ -45,7 +45,7 @@ export interface LoginFormValue {
         "
       >
         <input
-          appInput
+          hlmInput
           type="password"
           formControlName="password"
           autocomplete="current-password"
@@ -53,14 +53,22 @@ export interface LoginFormValue {
       </app-form-field>
 
       @if (error(); as error) {
-        <p class="rounded-lg bg-red-50 p-3 text-sm text-red-800" role="alert">
+        <p
+          class="bg-destructive/10 text-destructive rounded-md p-3 text-sm"
+          role="alert"
+        >
           {{ error }}
         </p>
       }
 
-      <app-button type="submit" [disabled]="pending()">
+      <button
+        hlmBtn
+        type="submit"
+        class="w-full sm:w-auto sm:justify-self-start"
+        [disabled]="pending()"
+      >
         {{ 'auth.login.submit' | transloco }}
-      </app-button>
+      </button>
     </form>
   `,
 })

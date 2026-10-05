@@ -19,13 +19,16 @@ COPY . .
 EXPOSE 4200
 CMD ["pnpm", "nx", "serve", "web", "--host", "0.0.0.0"]
 
-# Production build of static files.
+# Production build of static files: the app and Storybook.
 FROM deps AS build
 COPY . .
-RUN pnpm nx build web
+RUN pnpm nx build web && pnpm nx run storybook:build-storybook
 
 # Image deployed to the cluster: nginx without root, listening on 8080.
 FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24 AS prod
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+# Off unless the deployment turns it on. The template needs a value.
+ENV STORYBOOK_ENABLED=false
+COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist/apps/web/browser /usr/share/nginx/html
+COPY --from=build /app/dist/storybook /usr/share/nginx/storybook
 EXPOSE 8080

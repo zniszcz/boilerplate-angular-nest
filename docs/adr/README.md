@@ -28,3 +28,4 @@ code.
 | [0014](0014-strict-content-security-policy.md)      | Strict Content Security Policy and helmet                           |
 | [0015](0015-ddd-layers.md)                          | Strict DDD layers, checked by Nx and dependency-cruiser             |
 | [0016](0016-scheduled-jobs-as-commands.md)          | Scheduled jobs are commands, the schedule belongs to the deployment |
+| [0017](0017-spartan-and-storybook.md)               | spartan/ui atoms and Storybook as an app                            |

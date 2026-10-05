@@ -11,11 +11,12 @@ NETWORK=boilerplate-prod-test
 VOLUME=boilerplate-media-test
 API_PORT=13000
 WEB_PORT=18080
+STORYBOOK_PORT=18081
 JWT_SECRET=prod-test-secret
 B="http://127.0.0.1:$API_PORT/api"
 
 cleanup() {
-  docker rm -f prod-test-api prod-test-web prod-test-db >/dev/null 2>&1 || true
+  docker rm -f prod-test-api prod-test-web prod-test-storybook prod-test-db >/dev/null 2>&1 || true
   docker volume rm "$VOLUME" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
 }
@@ -238,6 +239,25 @@ curl -fsI "http://127.0.0.1:$WEB_PORT/favicon.ico" \
 curl -fs "http://127.0.0.1:$WEB_PORT/" | grep -qiE '<style|onload=|<script>' \
   && fail "index.html has inline code the CSP blocks"
 pass "web sends a strict CSP and index.html has no inline code"
+
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$WEB_PORT/storybook/")" = 404 ] \
+  || fail "Storybook is on without STORYBOOK_ENABLED"
+pass "Storybook is off by default"
+
+docker run -d --name prod-test-storybook -e STORYBOOK_ENABLED=true \
+  -p "127.0.0.1:$STORYBOOK_PORT:8080" "$WEB" >/dev/null
+wait_for "http://127.0.0.1:$STORYBOOK_PORT/"
+curl -fs "http://127.0.0.1:$STORYBOOK_PORT/storybook/" | grep -qi '<title>.*storybook' \
+  || fail "STORYBOOK_ENABLED=true does not serve Storybook"
+# Its scripts must come from the Storybook build, not the app's .js rule.
+curl -fs -o /dev/null "http://127.0.0.1:$STORYBOOK_PORT/storybook/sb-manager/runtime.js" \
+  || fail "Storybook scripts are not served"
+curl -fsI "http://127.0.0.1:$STORYBOOK_PORT/storybook/iframe.html" \
+  | grep -qi '^x-frame-options: SAMEORIGIN' || fail "Storybook headers"
+curl -fsI "http://127.0.0.1:$STORYBOOK_PORT/" \
+  | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';" \
+  || fail "the app lost its strict CSP when Storybook is on"
+pass "STORYBOOK_ENABLED=true serves Storybook with its own headers"
 
 for language in en pl; do
   curl -fs "http://127.0.0.1:$WEB_PORT/i18n/$language.json" | grep -q '"auth"' \

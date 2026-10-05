@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "types": ["node"]
+  },
+  "files": [".storybook/preview.ts"],
+  "include": [".storybook/*.ts", "../../libs/web/**/*.stories.ts"]
+}

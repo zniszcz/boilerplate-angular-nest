@@ -25,9 +25,13 @@ module.exports = {
     {
       name: 'no-circular',
       severity: 'error',
-      comment: 'Cycles make modules impossible to understand or move alone.',
+      comment:
+        'Cycles make modules impossible to understand or move alone. A cycle made only of `import type` is gone at runtime, so it does not count.',
       from: {},
-      to: { circular: true },
+      to: {
+        circular: true,
+        viaOnly: { dependencyTypesNot: ['type-only'] },
+      },
     },
     {
       name: 'domain-is-pure',

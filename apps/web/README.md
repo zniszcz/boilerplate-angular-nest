@@ -1,7 +1,16 @@
 # web
 
 The Angular app. In production it is served by nginx, configured in
-[nginx.conf](nginx.conf).
+[nginx.conf.template](nginx.conf.template).
+
+## Storybook
+
+The image contains Storybook (`apps/storybook`) under `/storybook/`. nginx
+serves it only when the container gets `STORYBOOK_ENABLED=true`; the image
+sets `false`, so it is off unless the deployment turns it on. Turn it on for
+local and test environments, never for production, like `SWAGGER_ENABLED` in
+the API. Storybook gets its own, looser headers, because it needs inline
+scripts and an iframe; the app keeps the strict ones below.
 
 ## Security headers
 
@@ -30,12 +39,12 @@ file it serves.
    | `fetch` or XHR to an address | `connect-src` |
 
 2. Add the exact origin, with `https://`, to that directive in the
-   `Content-Security-Policy` header in [nginx.conf](nginx.conf). Never add a
+   `Content-Security-Policy` header in [nginx.conf.template](nginx.conf.template). Never add a
    whole scheme such as `https:`, a wildcard or `'unsafe-inline'`.
 3. Check the page in a browser built with `scripts/test-prod-images.sh`:
    the console reports every blocked file as a CSP violation.
 
-nginx.conf has a commented example for Google Fonts. The stylesheet comes
+nginx.conf.template has a commented example for Google Fonts. The stylesheet comes
 from `https://fonts.googleapis.com` (`style-src`), the font files from
 `https://fonts.gstatic.com` (`font-src`). To use it, replace the active
 `Content-Security-Policy` line with the example.

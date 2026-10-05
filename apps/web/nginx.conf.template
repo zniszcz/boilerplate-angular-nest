@@ -1,5 +1,7 @@
 # Serves the built Angular app. Requests to /api go to the backend through
 # the cluster ingress, so nginx does not proxy them.
+# A template: at start nginx puts environment variables in, so ${STORYBOOK_ENABLED}
+# comes from the container. nginx's own variables, such as $uri, stay as they are.
 server {
     listen 8080;
     root /usr/share/nginx/html;
@@ -35,5 +37,21 @@ server {
     # index.html must be fresh, so a new deployment is picked up at once.
     location = /index.html {
         add_header Cache-Control "no-cache";
+    }
+    # Storybook, only where STORYBOOK_ENABLED=true, like Swagger in the API.
+    # Never on production. Storybook needs inline scripts and runs stories in
+    # an iframe, so it gets its own, looser headers instead of the ones above.
+    set $storybook_enabled "${STORYBOOK_ENABLED}";
+    # ^~ wins over the regex location for .js and .css files above.
+    location ^~ /storybook/ {
+        if ($storybook_enabled != "true") {
+            return 404;
+        }
+        alias /usr/share/nginx/storybook/;
+        add_header_inherit off;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'self'" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Cache-Control "no-cache" always;
     }
 }

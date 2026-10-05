@@ -1,0 +1,7 @@
+{
+  "componentsPath": "libs/web/helm",
+  "buildable": false,
+  "generateAs": "entrypoint",
+  "style": "vega",
+  "importAlias": "@boilerplate/web-helm"
+}

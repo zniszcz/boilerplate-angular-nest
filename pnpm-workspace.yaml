@@ -27,3 +27,5 @@ minimumReleaseAgeExclude:
   - '@angular/language-service@22.2.1'
   - '@schematics/angular@22.2.1'
   - globals@17.13.0
+  - '@spartan-ng/brain@1.6.0'
+  - '@spartan-ng/cli@1.6.0'

@@ -1,7 +1,6 @@
 // Presentational components only: data in through inputs, events out through
 // outputs. No store, HTTP or router here. Texts may use the transloco pipe.
-export * from './lib/atoms/button';
-export * from './lib/atoms/input';
+// Atoms are the spartan/ui helm components in libs/web/helm.
 export * from './lib/molecules/form-field';
 export * from './lib/molecules/language-select';
 export * from './lib/organisms/app-header';

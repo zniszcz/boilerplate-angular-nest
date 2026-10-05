@@ -24,7 +24,13 @@
       "@boilerplate/web-auth": ["./libs/web/auth/src/index.ts"],
       "@boilerplate/web-ui": ["./libs/web/ui/src/index.ts"],
       "@boilerplate/web-home": ["./libs/web/home/src/index.ts"],
-      "@boilerplate/web-i18n": ["./libs/web/i18n/src/index.ts"]
+      "@boilerplate/web-i18n": ["./libs/web/i18n/src/index.ts"],
+      "@boilerplate/web-helm": ["./libs/web/helm/src/index.ts"],
+      "@boilerplate/web-helm/button": ["./libs/web/helm/button/src/index.ts"],
+      "@boilerplate/web-helm/utils": ["./libs/web/helm/utils/src/index.ts"],
+      "@boilerplate/web-helm/input": ["./libs/web/helm/input/src/index.ts"],
+      "@boilerplate/web-helm/label": ["./libs/web/helm/label/src/index.ts"],
+      "@boilerplate/web-helm/badge": ["./libs/web/helm/badge/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

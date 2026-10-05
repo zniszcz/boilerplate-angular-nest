@@ -1,13 +1,14 @@
 import { Component, input, output } from '@angular/core';
 
+/** A native select: the phone shows its own picker. */
 @Component({
   selector: 'app-language-select',
   template: `
-    <label class="flex items-center gap-2 text-sm text-slate-600">
+    <label class="text-muted-foreground flex items-center gap-2 text-sm">
       <span class="sr-only sm:not-sr-only">{{ label() }}</span>
       <select
         #select
-        class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-base sm:py-1 sm:text-sm"
+        class="border-input bg-background h-11 rounded-md border px-2 text-base md:h-9 md:text-sm"
         [attr.aria-label]="label()"
         (change)="changed.emit(select.value)"
       >

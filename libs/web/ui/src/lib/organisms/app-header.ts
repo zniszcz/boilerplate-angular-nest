@@ -4,7 +4,7 @@ import { Component, input } from '@angular/core';
 @Component({
   selector: 'app-header',
   template: `
-    <header class="border-b border-slate-200 bg-white">
+    <header class="bg-card border-b">
       <div
         class="mx-auto flex w-full max-w-screen-md items-center justify-between gap-4 px-4 py-3 sm:px-6"
       >

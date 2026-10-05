@@ -1,34 +1,39 @@
 import { Component, input, output } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { Button } from '../atoms/button';
+import { HlmBadge } from '@boilerplate/web-helm/badge';
+import { HlmButton } from '@boilerplate/web-helm/button';
 
+/** Who is logged in, with what permissions, and a logout button. */
 @Component({
   selector: 'app-user-summary',
-  imports: [TranslocoPipe, Button],
+  imports: [TranslocoPipe, HlmBadge, HlmButton],
   template: `
-    <section
-      class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
-    >
+    <section class="bg-card grid gap-4 rounded-xl border p-4 sm:p-6">
       <p class="text-lg">
         {{ 'home.greeting' | transloco: { email: email() } }}
       </p>
 
       <div class="grid gap-2">
-        <h2 class="text-sm font-medium uppercase tracking-wide text-slate-500">
+        <h2
+          class="text-muted-foreground text-sm font-medium tracking-wide uppercase"
+        >
           {{ 'home.permissions' | transloco }}
         </h2>
         <ul class="flex flex-wrap gap-2">
           @for (permission of permissions(); track permission) {
-            <li class="rounded-full bg-slate-100 px-3 py-1 text-sm">
-              {{ permission }}
-            </li>
+            <li hlmBadge variant="secondary">{{ permission }}</li>
           }
         </ul>
       </div>
 
-      <app-button variant="secondary" (click)="logout.emit()">
+      <button
+        hlmBtn
+        variant="outline"
+        class="w-full sm:w-auto sm:justify-self-start"
+        (click)="logout.emit()"
+      >
         {{ 'auth.logout' | transloco }}
-      </app-button>
+      </button>
     </section>
   `,
 })
