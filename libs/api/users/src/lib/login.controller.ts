@@ -5,8 +5,10 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
   Body,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import {
@@ -19,6 +21,7 @@ import {
   verifyPassword,
 } from '@boilerplate/api-auth';
 import { LoginDto } from './dto/login.dto';
+import { LoginThrottlerGuard, REFRESH_THROTTLE } from './login-throttler.guard';
 import { UserDto } from './dto/user.dto';
 import { SessionsService } from './sessions.service';
 import type { User } from './user.entity';
@@ -36,6 +39,7 @@ export class LoginController {
   /** Checks email and password and sets both token cookies. */
   @Post('login')
   @HttpCode(200)
+  @UseGuards(LoginThrottlerGuard)
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -57,6 +61,8 @@ export class LoginController {
    */
   @Post('refresh')
   @HttpCode(200)
+  @UseGuards(LoginThrottlerGuard)
+  @Throttle({ default: REFRESH_THROTTLE })
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

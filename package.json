@@ -43,6 +43,7 @@
     "@nestjs/platform-express": "11.2.7",
     "@nestjs/swagger": "11.4.7",
     "@nestjs/terminus": "12.1.0",
+    "@nestjs/throttler": "6.7.1",
     "@nestjs/typeorm": "12.0.2",
     "@ngrx/signals": "22.0.1",
     "class-transformer": "0.5.1",
