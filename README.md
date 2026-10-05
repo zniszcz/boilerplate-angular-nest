@@ -160,22 +160,23 @@ the port of `nx serve api` on your machine, set `PORT` in
 
 These need the [machine setup](#setup).
 
-| Command                                                 | What it does                                                                |
-| ------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `pnpm dev`                                              | Runs the API and the web app with watchers                                  |
-| `pnpm storybook`                                        | Runs Storybook for the web UI at http://localhost:4400                      |
-| `pnpm build`                                            | Builds all apps                                                             |
-| `pnpm lint`                                             | Runs ESLint in all projects                                                 |
-| `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                        |
-| `pnpm format`                                           | Formats all files with Prettier                                             |
-| `pnpm format:check`                                     | Checks formatting without changing files                                    |
-| `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                            |
-| `pnpm contracts:check`                                  | Fails when the generated API types are out of date                          |
-| `pnpm nx run api:migrate`                               | Runs pending migrations                                                     |
-| `pnpm nx run api:migrate-revert`                        | Reverts the last migration                                                  |
-| `pnpm nx run api:migration-generate [--name=AddOrders]` | Generates a migration from the difference between entities and the database |
-| `pnpm nx run api:seed`                                  | Writes permissions and the test account                                     |
-| `pnpm nx run api:cleanup`                               | Removes expired refresh tokens and those of sessions ended over 7 days ago  |
+| Command                                                 | What it does                                                                      |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `pnpm dev`                                              | Runs the API and the web app with watchers                                        |
+| `pnpm storybook`                                        | Runs Storybook for the web UI at http://localhost:4400                            |
+| `pnpm build`                                            | Builds all apps                                                                   |
+| `pnpm lint`                                             | Runs ESLint in all projects                                                       |
+| `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                              |
+| `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version |
+| `pnpm format`                                           | Formats all files with Prettier                                                   |
+| `pnpm format:check`                                     | Checks formatting without changing files                                          |
+| `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                                  |
+| `pnpm contracts:check`                                  | Fails when the generated API types are out of date                                |
+| `pnpm nx run api:migrate`                               | Runs pending migrations                                                           |
+| `pnpm nx run api:migrate-revert`                        | Reverts the last migration                                                        |
+| `pnpm nx run api:migration-generate [--name=AddOrders]` | Generates a migration from the difference between entities and the database       |
+| `pnpm nx run api:seed`                                  | Writes permissions and the test account                                           |
+| `pnpm nx run api:cleanup`                               | Removes expired refresh tokens and those of sessions ended over 7 days ago        |
 
 ## Database
 
@@ -398,6 +399,10 @@ dependency.
 
 - Dependencies are saved without `^` or `~`. `saveExact` in
   `pnpm-workspace.yaml` makes `pnpm add` do this automatically.
+- `pnpm versions` (syncpack, rules in `.syncpackrc.json`) fails on any range.
+  A pre-commit hook runs it when `package.json` changes, because generators,
+  such as the spartan CLI, can still write `^`. Fix with
+  `pnpm exec syncpack fix`.
 - `pnpm-lock.yaml` is committed, so every install gets the same dependency
   tree.
 - pnpm refuses to run on a Node.js version other than the one in `.nvmrc`

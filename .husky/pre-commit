@@ -1,0 +1,10 @@
+# Exact versions only (docs/adr/0004-exact-versions.md). Blocks the commit,
+# because a range in package.json makes installs differ between machines.
+# Fix with: pnpm exec syncpack fix
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "versions: skipped, pnpm not found. Run 'nvm use' and 'corepack enable'." >&2
+  exit 0
+fi
+if git diff --cached --name-only | grep -q '^package\.json$'; then
+  pnpm versions
+fi

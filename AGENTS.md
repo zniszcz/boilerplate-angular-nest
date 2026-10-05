@@ -12,7 +12,7 @@ run and change things: [README](README.md).
 
 ## Before a commit
 
-Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`,
+Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`, `pnpm versions`,
 `pnpm format:check`, and
 `pnpm contracts:check` after any change to a DTO or a route.
 
