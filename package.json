@@ -48,6 +48,8 @@
     "@nestjs/terminus": "12.1.0",
     "@nestjs/throttler": "6.7.1",
     "@nestjs/typeorm": "12.0.2",
+    "@ng-icons/core": "32.5.0",
+    "@ng-icons/lucide": "32.5.0",
     "@ngrx/signals": "22.0.1",
     "@spartan-ng/brain": "1.6.0",
     "class-transformer": "0.5.1",

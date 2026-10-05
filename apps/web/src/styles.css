@@ -6,8 +6,9 @@
 @import 'tailwindcss/utilities.css';
 @import '@spartan-ng/brain/hlm-tailwind-preset.css';
 
-/* Class names are also read from the web libraries. */
+/* Class names are also read from the web libraries and index.html. */
 @source '../../../libs/web';
+@source './index.html';
 
 /* Theme from `nx g @spartan-ng/cli:init --theme=slate`. Components use these
    tokens (bg-background, text-primary...), never raw colors. */
@@ -96,4 +97,47 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Motion. Durations: 150ms (fast), 200ms (base), 300ms (slow), never longer.
+   Only opacity and transform move. Motion explains a change of state; it does
+   not decorate. Why: docs/adr/0018-loading-states-and-motion.md */
+@theme {
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
+}
+
+/* The motion catalog. Components use these classes, with Angular's
+   animate.enter and animate.leave, and invent no motion of their own. */
+@utility motion-appear {
+  /* Something new shows up: a list row, a message, a section. */
+  @apply animate-in fade-in slide-in-from-bottom-1 duration-200 ease-enter;
+}
+@utility motion-disappear {
+  @apply animate-out fade-out duration-150 ease-exit;
+}
+@utility motion-swap {
+  /* A skeleton gives way to content. */
+  @apply animate-in fade-in duration-150 ease-enter;
+}
+@utility motion-alert {
+  /* An error or a notice: slides in, never shakes. */
+  @apply animate-in fade-in slide-in-from-top-1 duration-200 ease-enter;
+}
+
+/* Users who ask for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The screen while the app starts, in index.html. Angular replaces it. It
+   fades in only after 150ms, so a fast start never flashes it. */
+@utility boot-indicator {
+  @apply animate-in fade-in fill-mode-both delay-150 duration-200;
 }

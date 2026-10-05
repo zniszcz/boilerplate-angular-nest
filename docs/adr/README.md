@@ -29,3 +29,4 @@ code.
 | [0015](0015-ddd-layers.md)                          | Strict DDD layers, checked by Nx and dependency-cruiser             |
 | [0016](0016-scheduled-jobs-as-commands.md)          | Scheduled jobs are commands, the schedule belongs to the deployment |
 | [0017](0017-spartan-and-storybook.md)               | spartan/ui atoms and Storybook as an app                            |
+| [0018](0018-loading-states-and-motion.md)           | Loading states and motion as a system                               |

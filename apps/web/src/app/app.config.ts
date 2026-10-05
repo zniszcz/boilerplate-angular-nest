@@ -5,19 +5,25 @@ import {
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import {
+  PreloadAllModules,
+  provideRouter,
+  withPreloading,
+} from '@angular/router';
 import { AuthStore, authRefreshInterceptor } from '@boilerplate/web-auth';
+import { provideSpartanHlm } from '@boilerplate/web-helm/utils';
 import { acceptLanguageInterceptor, provideI18n } from '@boilerplate/web-i18n';
 import { appRoutes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(appRoutes),
+    provideRouter(appRoutes, withPreloading(PreloadAllModules)),
     provideHttpClient(
       withInterceptors([acceptLanguageInterceptor, authRefreshInterceptor]),
     ),
     provideI18n(),
+    provideSpartanHlm(),
     // Routes are guarded by the logged in state, so it is known first.
     provideAppInitializer(() => inject(AuthStore).loadMe()),
   ],

@@ -1,57 +1,40 @@
-import nx from '@nx/eslint-plugin';
+import angular from 'angular-eslint';
+import { defineConfig } from 'eslint/config';
 import baseConfig from '../../../eslint.config.mjs';
 
-export default [
-  ...nx.configs['flat/angular'],
-  ...nx.configs['flat/angular-template'],
-  ...baseConfig,
+// Entry points import each other by alias, such as @boilerplate/web-helm/utils,
+// which the boundary rule allows only with allowCircularSelfDependency.
+const [level, boundaries] = baseConfig.find(
+  (config) => config.rules?.['@nx/enforce-module-boundaries'],
+).rules['@nx/enforce-module-boundaries'];
+
+// Same setup as libs/web/ui, with the spartan conventions: the `hlm` prefix
+// and class names without a Component or Directive suffix.
+export default defineConfig(
+  baseConfig,
   {
     files: ['**/*.ts'],
+    extends: [angular.configs.tsRecommended],
+    processor: angular.processInlineTemplates,
     rules: {
       '@angular-eslint/directive-selector': [
         'error',
-        {
-          type: 'attribute',
-          prefix: 'hlm',
-          style: 'camelCase',
-        },
+        { type: 'attribute', prefix: 'hlm', style: 'camelCase' },
       ],
       '@angular-eslint/component-selector': [
         'error',
-        {
-          type: 'element',
-          prefix: 'hlm',
-          style: 'kebab-case',
-        },
+        { type: 'element', prefix: 'hlm', style: 'kebab-case' },
       ],
+      // spartan renames inputs, for example aria-label to ariaLabel.
       '@angular-eslint/no-input-rename': 'off',
-      '@nx/enforce-module-boundaries': (() => {
-        const r = baseConfig.find(
-          (c) => c.rules && c.rules['@nx/enforce-module-boundaries'],
-        )?.rules['@nx/enforce-module-boundaries'];
-        return r
-          ? [r[0], { ...r[1], allowCircularSelfDependency: true }]
-          : undefined;
-      })(),
-      '@angular-eslint/directive-class-suffix': 'off',
-      '@angular-eslint/component-class-suffix': 'off',
-      '@typescript-eslint/naming-convention': [
-        'error',
-        {
-          selector: 'classProperty',
-          modifiers: ['protected'],
-          format: ['camelCase'],
-          leadingUnderscore: 'require',
-        },
+      '@nx/enforce-module-boundaries': [
+        level,
+        { ...boundaries, allowCircularSelfDependency: true },
       ],
     },
   },
   {
     files: ['**/*.html'],
-    // Override or add rules here
-    rules: {
-      '@angular-eslint/template/interactive-supports-focus': 'off',
-      '@angular-eslint/template/click-events-have-key-events': 'off',
-    },
+    extends: [angular.configs.templateRecommended],
   },
-];
+);

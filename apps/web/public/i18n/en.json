@@ -21,5 +21,19 @@
   "errors": {
     "AUTH_INVALID_CREDENTIALS": "Invalid email or password",
     "AUTH_TOO_MANY_ATTEMPTS": "Too many attempts, try again in {{ minutes }} min"
+  },
+  "common": {
+    "loading": "Loading",
+    "loadFailed": "Could not load the data",
+    "retry": "Try again"
+  },
+  "users": {
+    "title": "Users",
+    "empty": "No users yet"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "text": "This address leads nowhere. It may have changed or never existed.",
+    "home": "Go to the home page"
   }
 }

@@ -23,6 +23,7 @@
       "@boilerplate/api-responses": ["./libs/api/responses/src/index.ts"],
       "@boilerplate/web-auth": ["./libs/web/auth/src/index.ts"],
       "@boilerplate/web-ui": ["./libs/web/ui/src/index.ts"],
+      "@boilerplate/web-errors": ["./libs/web/errors/src/index.ts"],
       "@boilerplate/web-home": ["./libs/web/home/src/index.ts"],
       "@boilerplate/web-i18n": ["./libs/web/i18n/src/index.ts"],
       "@boilerplate/web-helm": ["./libs/web/helm/src/index.ts"],
@@ -30,7 +31,11 @@
       "@boilerplate/web-helm/utils": ["./libs/web/helm/utils/src/index.ts"],
       "@boilerplate/web-helm/input": ["./libs/web/helm/input/src/index.ts"],
       "@boilerplate/web-helm/label": ["./libs/web/helm/label/src/index.ts"],
-      "@boilerplate/web-helm/badge": ["./libs/web/helm/badge/src/index.ts"]
+      "@boilerplate/web-helm/badge": ["./libs/web/helm/badge/src/index.ts"],
+      "@boilerplate/web-helm/skeleton": [
+        "./libs/web/helm/skeleton/src/index.ts"
+      ],
+      "@boilerplate/web-helm/spinner": ["./libs/web/helm/spinner/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

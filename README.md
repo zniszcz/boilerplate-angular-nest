@@ -306,6 +306,7 @@ place blocks. Code goes by what it does:
 | `libs/web/ui`        | Molecules, organisms and templates built from the atoms. Data comes in through inputs, events go out through outputs. No store, HTTP or router. Texts may use the transloco pipe |
 | `libs/web/<feature>` | Pages, such as `libs/web/auth` and `libs/web/home`. They connect stores to organisms and have no look of their own                                                               |
 | `libs/web/i18n`      | Transloco setup and the language switcher                                                                                                                                        |
+| `libs/web/errors`    | Error pages, such as the 404 page for unknown addresses                                                                                                                          |
 | `apps/web`           | Configuration, routes and an empty root component that only composes                                                                                                             |
 | `apps/storybook`     | Storybook collecting the stories next to the components, see [apps/storybook/README.md](apps/storybook/README.md)                                                                |
 
@@ -315,6 +316,10 @@ place blocks. Code goes by what it does:
   through tokens such as `bg-card`. Why: [ADR 0017](docs/adr/0017-spartan-and-storybook.md).
   `apps/web/src/styles.css` is plain CSS, because Tailwind does not work
   through Sass, and it reads classes from `libs/web`.
+- Loading and motion follow one system: lazy pages, `@defer` below the first
+  screen, `httpResource` for data, skeletons of the same size as the content
+  and a small catalog of motion classes. See
+  [ADR 0018](docs/adr/0018-loading-states-and-motion.md).
 - State lives in NgRx Signal Store. `AuthStore` in `libs/web/auth` keeps the
   logged in user. It asks `/api/users/me` once when the app starts, so route
   guards know the answer.

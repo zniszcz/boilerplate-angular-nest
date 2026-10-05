@@ -21,5 +21,19 @@
   "errors": {
     "AUTH_INVALID_CREDENTIALS": "Nieprawidłowy email lub hasło",
     "AUTH_TOO_MANY_ATTEMPTS": "Za dużo prób, spróbuj ponownie za {{ minutes }} min"
+  },
+  "common": {
+    "loading": "Ładowanie",
+    "loadFailed": "Nie udało się pobrać danych",
+    "retry": "Spróbuj ponownie"
+  },
+  "users": {
+    "title": "Użytkownicy",
+    "empty": "Nie ma jeszcze użytkowników"
+  },
+  "notFound": {
+    "title": "Nie ma takiej strony",
+    "text": "Ten adres nigdzie nie prowadzi. Mógł się zmienić albo nigdy nie istniał.",
+    "home": "Przejdź na stronę główną"
   }
 }
