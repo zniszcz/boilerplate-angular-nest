@@ -7,6 +7,7 @@ import { LOGIN_THROTTLE } from './api/login-throttler.guard';
 import {
   AuthenticationService,
   RefreshTokenCodec,
+  SessionCleanup,
   UserLookup,
 } from './application';
 import { SessionRepository } from './domain';
@@ -15,10 +16,24 @@ import { RefreshTokenRecord } from './infrastructure/refresh-token.record';
 import { TypeormSessionRepository } from './infrastructure/typeorm-session.repository';
 import { UsersUserLookup } from './infrastructure/users-user-lookup';
 
+/**
+ * Sessions alone, without routes or the users domain. Enough for the cleanup
+ * command, which must run without JWT_SECRET.
+ */
+@Module({
+  imports: [TypeOrmModule.forFeature([RefreshTokenRecord])],
+  providers: [
+    SessionCleanup,
+    { provide: SessionRepository, useClass: TypeormSessionRepository },
+  ],
+  exports: [SessionCleanup, SessionRepository],
+})
+export class SessionsModule {}
+
 /** The only file that sees every layer: it binds ports to adapters. */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RefreshTokenRecord]),
+    SessionsModule,
     // Used only by the routes with LoginThrottlerGuard, not the whole API.
     ThrottlerModule.forRoot([LOGIN_THROTTLE]),
     UsersModule,
@@ -26,7 +41,6 @@ import { UsersUserLookup } from './infrastructure/users-user-lookup';
   controllers: [LoginController],
   providers: [
     AuthenticationService,
-    { provide: SessionRepository, useClass: TypeormSessionRepository },
     { provide: RefreshTokenCodec, useClass: CryptoRefreshTokenCodec },
     { provide: UserLookup, useClass: UsersUserLookup },
   ],

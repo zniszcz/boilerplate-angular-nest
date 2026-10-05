@@ -91,6 +91,11 @@ pass "migrations run once"
 api --rm "$API" node seed.js >/dev/null && api --rm "$API" node seed.js >/dev/null \
   || fail "seed"
 pass "seed can run many times"
+# The cleanup command runs without JWT_SECRET, like a CronJob would give it.
+docker run --rm --network "$NETWORK" \
+  -e DATABASE_URL=postgres://app:app@prod-test-db:5432/app "$API" \
+  node cleanup.js | grep -q '^Removed [0-9]* refresh tokens' || fail "cleanup"
+pass "cleanup runs without JWT_SECRET"
 
 run_api
 [ "$(docker exec prod-test-api id -un)" = node ] || fail "api runs as root"

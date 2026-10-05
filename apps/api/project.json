@@ -90,6 +90,14 @@
         "command": "node dist/apps/api/seed.js",
         "envFile": "apps/api/.env.serve"
       }
+    },
+    "cleanup": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/apps/api/cleanup.js",
+        "envFile": "apps/api/.env.serve"
+      }
     }
   },
   "tags": ["scope:api", "type:app"]

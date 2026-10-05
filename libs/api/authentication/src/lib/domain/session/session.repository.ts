@@ -16,4 +16,9 @@ export abstract class SessionRepository {
   abstract save(session: Session): Promise<void>;
   /** Removes the user's tokens that have expired. */
   abstract deleteExpired(userId: string, now: Date): Promise<void>;
+  /**
+   * Removes every expired token, and the tokens of sessions that ended before
+   * `endedBefore`. Returns how many tokens were removed.
+   */
+  abstract deleteStale(now: Date, endedBefore: Date): Promise<number>;
 }

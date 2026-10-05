@@ -67,4 +67,14 @@ export class TypeormSessionRepository extends SessionRepository {
   async deleteExpired(userId: string, now: Date): Promise<void> {
     await this.records.delete({ userId, expiresAt: LessThan(now) });
   }
+
+  async deleteStale(now: Date, endedBefore: Date): Promise<number> {
+    const result = await this.records
+      .createQueryBuilder()
+      .delete()
+      .where('expires_at < :now', { now })
+      .orWhere('revoked_at < :endedBefore', { endedBefore })
+      .execute();
+    return result.affected ?? 0;
+  }
 }

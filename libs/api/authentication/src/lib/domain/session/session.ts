@@ -6,6 +6,12 @@ import type { RefreshToken } from './refresh-token';
  */
 export const REUSE_GRACE_MS = 30_000;
 
+/**
+ * Ended sessions are kept this long after they end, so a suspected theft can
+ * still be looked into. Expired tokens go at once.
+ */
+export const ENDED_SESSION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
 export type RotateOutcome = 'rotated' | 'rejected';
 
 /** Changes the repository must write, in this order. */

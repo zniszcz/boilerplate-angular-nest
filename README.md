@@ -173,6 +173,7 @@ These need the [machine setup](#setup).
 | `pnpm nx run api:migrate-revert`                        | Reverts the last migration                                                  |
 | `pnpm nx run api:migration-generate [--name=AddOrders]` | Generates a migration from the difference between entities and the database |
 | `pnpm nx run api:seed`                                  | Writes permissions and the test account                                     |
+| `pnpm nx run api:cleanup`                               | Removes expired refresh tokens and those of sessions ended over 7 days ago  |
 
 ## Database
 
@@ -226,6 +227,10 @@ These need the [machine setup](#setup).
   again means it was stolen, so the whole session (token family) is revoked.
   A reuse within 30 seconds is two tabs refreshing at once and is only
   refused.
+- Cleanup: the `cleanup` command (`node cleanup.js` in the image) removes
+  expired tokens and tokens of sessions that ended over 7 days ago. It runs
+  once a day from a scheduler, which belongs to the deployment, so the app
+  does not depend on Kubernetes.
 - The web app refreshes on its own: `AUTH_UNAUTHENTICATED` triggers one shared refresh, then
   the request is repeated. When that fails, the user goes to `/login`.
 - Tokens are never in a response body. The cookies are `HttpOnly`, so page
