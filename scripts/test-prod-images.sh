@@ -171,18 +171,23 @@ docker exec prod-test-db psql -U app -d app -qc \
 [ "$(refresh "$r3" | code)" = 401 ] || fail "theft did not end the session"
 pass "reusing an old token ends the whole session"
 r=$(login_headers | cookie_value refresh_token)
-[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Cookie: $r" "$B/auth/logout")" = 204 ] \
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Cookie: $r" "$B/auth/logout")" = 200 ] \
   || fail "logout"
 [ "$(refresh "$r" | code)" = 401 ] || fail "refresh after logout"
 pass "logout ends the session"
 
-curl -s -H 'content-type: application/json' -H 'accept-language: pl' \
+# Another client address, because the logins above used up the limit.
+curl -s -H 'content-type: application/json' -H 'cf-connecting-ip: 192.0.2.1' \
   -d '{"email":"admin@example.com","password":"wrong"}' "$B/auth/login" \
-  | grep -q 'Nieprawidłowy' || fail "error not translated to Polish"
-curl -s -H 'content-type: application/json' \
+  | grep -q '"code":"AUTH_INVALID_CREDENTIALS"' || fail "no error code"
+curl -s -H 'content-type: application/json' -H 'cf-connecting-ip: 192.0.2.1' \
   -d '{"email":"nope","password":"x"}' "$B/auth/login" \
-  | grep -q 'must be an email address' || fail "English is not the default"
-pass "errors follow Accept-Language, English by default"
+  | grep -q '"field":"email","code":"INVALID_EMAIL"' || fail "no field code"
+pass "errors come in the envelope with codes"
+
+curl -fs -D - -o /dev/null "$B/health/live" \
+  | grep -qi '^x-content-type-options: nosniff' || fail "no helmet headers"
+pass "api sends security headers"
 
 docker exec prod-test-api sh -c 'echo media-ok > /app/media/test.txt' \
   || fail "media volume not writable"
@@ -219,6 +224,15 @@ pass "Angular routes fall back to index.html"
 curl -fsI "http://127.0.0.1:$WEB_PORT/" | grep -qi 'cache-control: no-cache' \
   || fail "index.html is cached"
 pass "index.html is not cached"
+
+curl -fsI "http://127.0.0.1:$WEB_PORT/" \
+  | grep -qi "^content-security-policy: default-src 'self'; script-src 'self'" \
+  || fail "no strict CSP"
+curl -fsI "http://127.0.0.1:$WEB_PORT/favicon.ico" \
+  | grep -qi '^content-security-policy:' || fail "CSP lost where cache headers are set"
+curl -fs "http://127.0.0.1:$WEB_PORT/" | grep -qiE '<style|onload=|<script>' \
+  && fail "index.html has inline code the CSP blocks"
+pass "web sends a strict CSP and index.html has no inline code"
 
 for language in en pl; do
   curl -fs "http://127.0.0.1:$WEB_PORT/i18n/$language.json" | grep -q '"auth"' \

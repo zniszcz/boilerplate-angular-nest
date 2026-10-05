@@ -328,6 +328,9 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
   the built code and runtime dependencies, no watchers or dev tools.
 - The image does not set the log level. `LOG_LEVEL` comes from Compose
   (`debug`) or from the cluster manifest (`info`).
+- Security headers: nginx sends a strict Content Security Policy and other
+  headers for the web app, see [apps/web/README.md](apps/web/README.md#security-headers).
+  The API sends the `helmet` defaults.
 - The web image is nginx with static files. It does not proxy `/api`,
   because in the cluster the ingress sends `/api` to the API and everything
   else to the web app, under one domain.

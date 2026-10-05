@@ -25,3 +25,4 @@ code.
 | [0011](0011-login-rate-limit.md)                    | Rate limit for login and refresh                     |
 | [0012](0012-response-envelope.md)                   | Response envelope with codes from one catalog        |
 | [0013](0013-own-field-codes-and-no-backend-i18n.md) | Own field codes, and no backend translations for now |
+| [0014](0014-strict-content-security-policy.md)      | Strict Content Security Policy and helmet            |

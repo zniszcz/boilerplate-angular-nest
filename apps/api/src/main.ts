@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
 import { logLevelsFromEnv } from './config/log-level';
@@ -18,6 +19,9 @@ async function bootstrap() {
   });
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+  // Standard security headers. Its default Content Security Policy also
+  // lets the Swagger UI work.
+  app.use(helmet());
   app.use(cookieParser());
   // Rejects bodies with fields the DTO does not declare. Invalid fields
   // become VALIDATION_ERROR details.
