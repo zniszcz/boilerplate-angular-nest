@@ -1,5 +1,7 @@
 # boilerplate-angular-nest
 
+[![CI](https://github.com/zniszcz/boilerplate-angular-nest/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zniszcz/boilerplate-angular-nest/actions/workflows/ci.yml?query=branch%3Amain)
+
 Project template for new applications: an Nx monorepo with an Angular frontend
 and a NestJS backend. Fork it when starting a new application.
 
