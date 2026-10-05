@@ -6,10 +6,11 @@ import {
   ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Permission } from './permission.entity';
+import { PermissionRecord } from './permission.record';
 
+/** The `users` table. Mapped to the User aggregate by the repository. */
 @Entity('users')
-export class User {
+export class UserRecord {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -20,13 +21,13 @@ export class User {
   @Column({ name: 'password_hash', select: false })
   passwordHash!: string;
 
-  @ManyToMany(() => Permission)
+  @ManyToMany(() => PermissionRecord)
   @JoinTable({
     name: 'user_permissions',
     joinColumn: { name: 'user_id' },
     inverseJoinColumn: { name: 'permission_code' },
   })
-  permissions!: Permission[];
+  permissions!: PermissionRecord[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

@@ -1,6 +1,44 @@
 # libs/api
 
-Backend logic, one library per domain.
+Backend logic. Domain libraries (`type:domain`: `users`, `authentication`)
+hold one bounded context each. Platform libraries (`type:platform`:
+`access`, `responses`) hold technical code shared by every domain.
+
+## Layers of a domain library
+
+See [ADR 0015](../../docs/adr/0015-ddd-layers.md). `pnpm architecture`
+checks every rule here; `libs/api/users` is the reference layout.
+
+```
+src/lib/
+  domain/<aggregate>/   aggregate, value objects, <aggregate>.repository.ts
+  application/          use cases (@Injectable), ports as abstract classes
+  infrastructure/       *.record.ts (TypeORM), repositories, adapters
+  api/                  controllers, *.dto.ts
+  <domain>.module.ts    binds ports to adapters, the only file seeing all
+src/index.ts            public API for other domains and apps/api
+```
+
+- `domain` imports nothing outside `domain`: no NestJS, no TypeORM, no
+  `node:` modules. Anything technical becomes a port.
+- `application` imports `domain` and `@nestjs/common` only. It returns
+  results, such as `{ status: 'refused' }`, and never throws `AppException`;
+  the `api` layer turns results into HTTP.
+- `api` never imports `infrastructure`; `infrastructure` never imports `api`.
+- Ports are abstract classes, bound in the module file with
+  `{ provide: Port, useClass: Adapter }`.
+- Name TypeORM classes `*Record` in `*.record.ts`. Aggregates are built from
+  records in the repository, never returned as records.
+
+## DDD rules
+
+- One repository per aggregate, never for an entity inside one.
+- An aggregate changes only through its own methods; no public setters.
+- An aggregate refers to another aggregate by id, not by object.
+- Another domain is used only from `infrastructure`, through its
+  `src/index.ts`, behind a port named in this domain's words.
+- No foreign keys between tables of different domains. Code must tolerate a
+  missing row on the other side.
 
 ## Errors and responses
 
@@ -25,7 +63,8 @@ See [ADR 0012](../../docs/adr/0012-response-envelope.md).
 
 ## Data
 
-- Entities never leave the backend. Copy them to a DTO field by field.
+- Records and aggregates never leave the backend. Copy to a DTO field by
+  field in the `api` layer.
 - The schema changes only through migration files.
 
 ## Security

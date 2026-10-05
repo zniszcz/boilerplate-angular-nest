@@ -8,5 +8,6 @@ export * from './lib/codes';
 
 type Schemas = components['schemas'];
 export type HelloDto = Schemas['HelloDto'];
+export type AccountDto = Schemas['AccountDto'];
 export type LoginDto = Schemas['LoginDto'];
 export type UserDto = Schemas['UserDto'];

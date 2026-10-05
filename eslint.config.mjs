@@ -31,7 +31,57 @@ export default defineConfig(
         {
           enforceBuildableLibDependency: true,
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
-          depConstraints: [{ sourceTag: '*', onlyDependOnLibsWithTags: ['*'] }],
+          // Boundaries between projects. Layers inside a domain library and
+          // cycles are checked by dependency-cruiser, see ADR 0015.
+          depConstraints: [
+            {
+              sourceTag: 'scope:api',
+              onlyDependOnLibsWithTags: ['scope:api', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:web',
+              onlyDependOnLibsWithTags: ['scope:web', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:shared',
+              onlyDependOnLibsWithTags: ['scope:shared'],
+            },
+            {
+              sourceTag: 'type:domain',
+              onlyDependOnLibsWithTags: [
+                'type:domain',
+                'type:platform',
+                'type:contracts',
+              ],
+            },
+            {
+              sourceTag: 'type:platform',
+              onlyDependOnLibsWithTags: ['type:platform', 'type:contracts'],
+            },
+            {
+              sourceTag: 'type:feature',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:ui',
+                'type:platform',
+                'type:contracts',
+              ],
+            },
+            // Presentational only: data in through inputs, events out.
+            {
+              sourceTag: 'type:ui',
+              onlyDependOnLibsWithTags: ['type:ui', 'type:contracts'],
+              bannedExternalImports: [
+                '@angular/router',
+                '@angular/common/http',
+                '@ngrx/*',
+              ],
+            },
+            {
+              sourceTag: 'type:contracts',
+              onlyDependOnLibsWithTags: ['type:contracts'],
+            },
+          ],
         },
       ],
     },

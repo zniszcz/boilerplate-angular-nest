@@ -25,6 +25,7 @@
     "contracts:generate": "nx build api && node dist/apps/api/openapi.js tmp/openapi.json && openapi-typescript tmp/openapi.json -o libs/shared/contracts/src/lib/api.generated.ts && prettier --write libs/shared/contracts/src/lib/api.generated.ts",
     "contracts:check": "pnpm contracts:generate && git diff --exit-code libs/shared/contracts",
     "lint": "nx run-many -t lint",
+    "architecture": "depcruise apps libs --config .dependency-cruiser.cjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -85,6 +86,7 @@
     "@types/pg": "8.23.1",
     "@typescript-eslint/utils": "8.71.0",
     "angular-eslint": "22.5.0",
+    "dependency-cruiser": "18.5.0",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-rxjs-x": "1.0.6",

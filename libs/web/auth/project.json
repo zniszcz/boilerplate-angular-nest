@@ -4,7 +4,7 @@
   "sourceRoot": "libs/web/auth/src",
   "prefix": "app",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:web", "type:feature"],
   "targets": {
     "lint": {
       "executor": "@nx/eslint:lint"

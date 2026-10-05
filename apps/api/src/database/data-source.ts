@@ -1,5 +1,6 @@
 import * as pg from 'pg';
 import { DataSource, type DataSourceOptions } from 'typeorm';
+import { AUTHENTICATION_ENTITIES } from '@boilerplate/api-authentication';
 import { USERS_ENTITIES } from '@boilerplate/api-users';
 import { MIGRATIONS } from './migrations';
 
@@ -16,7 +17,7 @@ export const dataSourceOptions: DataSourceOptions = {
   // the app user does not need the right to create one.
   uuidExtension: 'pgcrypto',
   installExtensions: false,
-  entities: [...USERS_ENTITIES],
+  entities: [...USERS_ENTITIES, ...AUTHENTICATION_ENTITIES],
   migrations: MIGRATIONS,
   synchronize: false,
   migrationsRun: false,

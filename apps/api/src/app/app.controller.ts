@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { Public } from '@boilerplate/api-auth';
+import { Public } from '@boilerplate/api-access';
 import { AppService } from './app.service';
 import { HelloDto } from './hello.dto';
 

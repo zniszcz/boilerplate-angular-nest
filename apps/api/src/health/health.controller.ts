@@ -4,7 +4,7 @@ import {
   HealthCheckService,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
-import { Public } from '@boilerplate/api-auth';
+import { Public } from '@boilerplate/api-access';
 import { NoEnvelope } from '@boilerplate/api-responses';
 import { MediaHealthIndicator } from './media.health';
 

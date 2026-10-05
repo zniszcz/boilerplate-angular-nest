@@ -17,22 +17,18 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
   TokenService,
-  verifyPassword,
-} from '@boilerplate/api-auth';
+} from '@boilerplate/api-access';
 import { ApiError, AppException } from '@boilerplate/api-responses';
-import { LoginDto } from './dto/login.dto';
+import { type Account, AuthenticationService } from '../application';
+import type { AccountDto } from './account.dto';
+import { LoginDto } from './login.dto';
 import { LoginThrottlerGuard, REFRESH_THROTTLE } from './login-throttler.guard';
-import { UserDto } from './dto/user.dto';
-import { SessionsService } from './sessions.service';
-import type { User } from './user.entity';
-import { UsersService } from './users.service';
 
 @Public()
 @Controller('auth')
 export class LoginController {
   constructor(
-    private readonly users: UsersService,
-    private readonly sessions: SessionsService,
+    private readonly authentication: AuthenticationService,
     private readonly tokens: TokenService,
   ) {}
 
@@ -51,17 +47,16 @@ export class LoginController {
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<UserDto> {
-    const user = await this.users.findForLogin(body.email);
-    // The same error for an unknown email and a wrong password.
-    if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
+  ): Promise<AccountDto> {
+    const result = await this.authentication.login(body.email, body.password);
+    if (result.status === 'refused') {
       throw new AppException(
         HttpStatus.UNAUTHORIZED,
         'AUTH_INVALID_CREDENTIALS',
       );
     }
-    await this.setCookies(response, user, await this.sessions.start(user.id));
-    return this.users.toDto(user);
+    await this.setCookies(response, result.account, result.refreshToken);
+    return toDto(result.account);
   }
 
   /**
@@ -86,21 +81,17 @@ export class LoginController {
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<UserDto> {
+  ): Promise<AccountDto> {
     const presented = refreshCookie(request);
     const result = presented
-      ? await this.sessions.rotate(presented)
-      : ({ status: 'rejected' } as const);
-    const user =
-      result.status === 'rotated'
-        ? await this.users.findById(result.userId)
-        : null;
-    if (result.status !== 'rotated' || !user) {
+      ? await this.authentication.refresh(presented)
+      : ({ status: 'refused' } as const);
+    if (result.status === 'refused') {
       clearCookies(response);
       throw new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_REFRESH_REJECTED');
     }
-    await this.setCookies(response, user, result.token);
-    return this.users.toDto(user);
+    await this.setCookies(response, result.account, result.refreshToken);
+    return toDto(result.account);
   }
 
   /** Ends the session and removes both cookies. */
@@ -112,19 +103,17 @@ export class LoginController {
   ): Promise<void> {
     const presented = refreshCookie(request);
     if (presented) {
-      await this.sessions.end(presented);
+      await this.authentication.logout(presented);
     }
     clearCookies(response);
   }
 
   private async setCookies(
     response: Response,
-    user: User,
+    account: Account,
     refreshToken: string,
   ): Promise<void> {
-    const accessToken = await this.tokens.issueAccessToken(
-      this.users.toAuthUser(user),
-    );
+    const accessToken = await this.tokens.issueAccessToken(account);
     response.cookie(
       ACCESS_TOKEN_COOKIE,
       accessToken,
@@ -136,6 +125,15 @@ export class LoginController {
       refreshTokenCookieOptions(),
     );
   }
+}
+
+/** Copies only the fields the API may show. */
+function toDto(account: Account): AccountDto {
+  return {
+    id: account.id,
+    email: account.email,
+    permissions: account.permissions,
+  };
 }
 
 function refreshCookie(request: Request): string | undefined {

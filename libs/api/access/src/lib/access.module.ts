@@ -24,4 +24,4 @@ import { ACCESS_TOKEN_TTL_SECONDS, TokenService } from './token.service';
   providers: [TokenService, { provide: APP_GUARD, useClass: AuthGuard }],
   exports: [TokenService],
 })
-export class AuthModule {}
+export class AccessModule {}

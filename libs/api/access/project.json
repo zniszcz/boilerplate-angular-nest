@@ -1,0 +1,9 @@
+{
+  "name": "api-access",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/access/src",
+  "projectType": "library",
+  "tags": ["scope:api", "type:platform"],
+  "// targets": "to see all targets run: nx show project access --web",
+  "targets": {}
+}

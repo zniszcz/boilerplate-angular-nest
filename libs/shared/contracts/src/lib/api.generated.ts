@@ -20,6 +20,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The logged in user. */
+    get: operations['UsersController_me'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** All users. Example of a route that needs a permission. */
+    get: operations['UsersController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -74,40 +108,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/me': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** The logged in user. */
-    get: operations['UsersController_me'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/users': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** All users. Example of a route that needs a permission. */
-    get: operations['UsersController_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/health/live': {
     parameters: {
       query?: never;
@@ -147,12 +147,18 @@ export interface components {
     HelloDto: {
       message: string;
     };
+    UserDto: {
+      id: string;
+      email: string;
+      /** @description Permission codes, for example `users:read`. */
+      permissions: string[];
+    };
     LoginDto: {
       /** Format: email */
       email: string;
       password: string;
     };
-    UserDto: {
+    AccountDto: {
       id: string;
       email: string;
       /** @description Permission codes, for example `users:read`. */
@@ -227,209 +233,6 @@ export interface operations {
             status: 'success';
             code: components['schemas']['ResponseCode'];
             data: components['schemas']['HelloDto'];
-          };
-        };
-      };
-      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "UNEXPECTED_ERROR"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  LoginController_login: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LoginDto'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            /** @enum {string} */
-            status: 'success';
-            code: components['schemas']['ResponseCode'];
-            data: components['schemas']['UserDto'];
-          };
-        };
-      };
-      /** @description `VALIDATION_ERROR`: The body does not match LoginDto */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "VALIDATION_ERROR"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description `AUTH_INVALID_CREDENTIALS`: Unknown email or wrong password */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "AUTH_INVALID_CREDENTIALS"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 5 attempts a minute from one address. Blocks for 15 minutes; `retryAfter` and the Retry-After header give the seconds left */
-      429: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
-           *       "params": {
-           *         "retryAfter": 900
-           *       }
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "UNEXPECTED_ERROR"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  LoginController_refresh: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            /** @enum {string} */
-            status: 'success';
-            code: components['schemas']['ResponseCode'];
-            data: components['schemas']['UserDto'];
-          };
-        };
-      };
-      /** @description `AUTH_REFRESH_REJECTED`: Missing, expired or reused refresh token. Both cookies are cleared */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "AUTH_REFRESH_REJECTED"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 20 attempts a minute from one address. Blocks for 1 minute */
-      429: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
-           *       "params": {
-           *         "retryAfter": 60
-           *       }
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "status": "error",
-           *       "code": "UNEXPECTED_ERROR"
-           *     }
-           */
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  LoginController_logout: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            /** @enum {string} */
-            status: 'success';
-            code: components['schemas']['ResponseCode'];
-            /** @enum {unknown|null} */
-            data: null;
           };
         };
       };
@@ -554,6 +357,209 @@ export interface operations {
            *     }
            */
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  LoginController_login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['AccountDto'];
+          };
+        };
+      };
+      /** @description `VALIDATION_ERROR`: The body does not match LoginDto */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "VALIDATION_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_INVALID_CREDENTIALS`: Unknown email or wrong password */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_INVALID_CREDENTIALS"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 5 attempts a minute from one address. Blocks for 15 minutes; `retryAfter` and the Retry-After header give the seconds left */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
+           *       "params": {
+           *         "retryAfter": 900
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  LoginController_refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['AccountDto'];
+          };
+        };
+      };
+      /** @description `AUTH_REFRESH_REJECTED`: Missing, expired or reused refresh token. Both cookies are cleared */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_REFRESH_REJECTED"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 20 attempts a minute from one address. Blocks for 1 minute */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
+           *       "params": {
+           *         "retryAfter": 60
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  LoginController_logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            /** @enum {unknown|null} */
+            data: null;
+          };
         };
       };
       /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */

@@ -1,26 +1,26 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LOGIN_THROTTLE } from './login-throttler.guard';
-import { LoginController } from './login.controller';
-import { Permission } from './permission.entity';
-import { RefreshToken } from './refresh-token.entity';
-import { SessionsService } from './sessions.service';
-import { User } from './user.entity';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
+import { UsersController } from './api/users.controller';
+import { Credentials, PasswordHasher, UserQueries } from './application';
+import { UserRepository } from './domain';
+import { PermissionRecord } from './infrastructure/permission.record';
+import { ScryptPasswordHasher } from './infrastructure/scrypt-password-hasher';
+import { TypeormUserRepository } from './infrastructure/typeorm-user.repository';
+import { UserRecord } from './infrastructure/user.record';
 
+/** The only file that sees every layer: it binds ports to adapters. */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Permission, RefreshToken]),
-    // Used only by the routes with LoginThrottlerGuard, not the whole API.
-    ThrottlerModule.forRoot([LOGIN_THROTTLE]),
+  imports: [TypeOrmModule.forFeature([UserRecord, PermissionRecord])],
+  controllers: [UsersController],
+  providers: [
+    UserQueries,
+    Credentials,
+    { provide: UserRepository, useClass: TypeormUserRepository },
+    { provide: PasswordHasher, useClass: ScryptPasswordHasher },
   ],
-  controllers: [LoginController, UsersController],
-  providers: [UsersService, SessionsService],
-  exports: [SessionsService],
+  exports: [UserQueries, Credentials],
 })
 export class UsersModule {}
 
-/** Entities for the TypeORM data source. */
-export const USERS_ENTITIES = [User, Permission, RefreshToken];
+/** Tables of this domain, for the TypeORM data source. */
+export const USERS_ENTITIES = [UserRecord, PermissionRecord];

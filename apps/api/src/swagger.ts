@@ -5,7 +5,7 @@ import {
   SwaggerModule,
 } from '@nestjs/swagger';
 import { FIELD_CODES, RESPONSE_CODES } from '@boilerplate/contracts';
-import { PUBLIC_EXTENSION } from '@boilerplate/api-auth';
+import { PUBLIC_EXTENSION } from '@boilerplate/api-access';
 import {
   ERROR_ENVELOPE_SCHEMA,
   errorResponse,

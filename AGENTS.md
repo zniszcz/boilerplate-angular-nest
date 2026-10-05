@@ -12,7 +12,8 @@ run and change things: [README](README.md).
 
 ## Before a commit
 
-Run and fix: `pnpm lint`, `pnpm build`, `pnpm format:check`, and
+Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`,
+`pnpm format:check`, and
 `pnpm contracts:check` after any change to a DTO or a route.
 
 ## Versions
@@ -28,6 +29,29 @@ Run and fix: `pnpm lint`, `pnpm build`, `pnpm format:check`, and
 - Apps only wire things together. Logic lives in libraries. See
   [Where code goes](README.md#where-code-goes) and
   [ADR 0005](docs/adr/0005-nx-monorepo-layout.md).
+- Every project has two Nx tags in `project.json`, one `scope:*` and one
+  `type:*`. A new library needs both, or the boundary rules cannot check it.
+  Which tag may import which is defined only in `depConstraints` in
+  `eslint.config.mjs`.
+
+  | Tag              | Meaning                                                           | Examples                       |
+  | ---------------- | ----------------------------------------------------------------- | ------------------------------ |
+  | `scope:api`      | runs in the backend                                               | `apps/api`, `libs/api/*`       |
+  | `scope:web`      | runs in the browser                                               | `apps/web`, `libs/web/*`       |
+  | `scope:shared`   | used by both sides, plain TypeScript                              | `libs/shared/contracts`        |
+  | `type:app`       | an application that only wires libraries together                 | `apps/api`, `apps/web`         |
+  | `type:domain`    | a backend bounded context in DDD layers, see `libs/api/AGENTS.md` | `users`, `authentication`      |
+  | `type:platform`  | technical code shared by many libraries, no domain model          | `libs/api/access`, `responses` |
+  | `type:feature`   | frontend pages or containers that connect state to components     | `libs/web/auth`, `i18n`        |
+  | `type:ui`        | presentational components only                                    | `libs/web/ui`                  |
+  | `type:contracts` | types shared by the frontend and the backend                      | `libs/shared/contracts`        |
+
+  A library that fits no tag is a sign of a missing decision: ask, and
+  record the new tag in an ADR.
+
+- Boundaries between libraries go to Nx, layers inside a library and cycles
+  to `.dependency-cruiser.cjs`, never the same rule in both. See
+  [ADR 0015](docs/adr/0015-ddd-layers.md).
 
 ## API contract
 

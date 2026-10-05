@@ -164,6 +164,7 @@ These need the [machine setup](#setup).
 | `pnpm dev`                                              | Runs the API and the web app with watchers                                  |
 | `pnpm build`                                            | Builds all apps                                                             |
 | `pnpm lint`                                             | Runs ESLint in all projects                                                 |
+| `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                        |
 | `pnpm format`                                           | Formats all files with Prettier                                             |
 | `pnpm format:check`                                     | Checks formatting without changing files                                    |
 | `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                            |
@@ -239,7 +240,7 @@ These need the [machine setup](#setup).
 - `@RequirePermissions('users:read')` allows a route only to users with that
   permission. Permissions travel in the access token, so a change takes
   effect at the next refresh, at most after 15 minutes.
-- Add new permissions in `libs/api/users/src/lib/permissions.ts`. The seed
+- Add new permissions in `libs/api/users/src/lib/domain/user/permissions.ts`. The seed
   command writes them to the database.
 - Passwords are hashed with scrypt, built into Node.js.
 - The password hash column has `select: false`, so ordinary queries never load
@@ -356,15 +357,16 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 ## Where code goes
 
-| Code                                     | Place                                                          |
-| ---------------------------------------- | -------------------------------------------------------------- |
-| Bootstrapping and wiring of the backend  | `apps/api`                                                     |
-| Bootstrapping and wiring of the frontend | `apps/web`                                                     |
-| Backend logic                            | `libs/api/<domain>`, one library per domain                    |
-| Response envelope for the backend        | `libs/api/responses`, imported as `@boilerplate/api-responses` |
-| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`              |
-| Presentational components                | `libs/web/ui`, see [Web app](#web-app)                         |
-| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts`  |
+| Code                                     | Place                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Bootstrapping and wiring of the backend  | `apps/api`                                                                                               |
+| Bootstrapping and wiring of the frontend | `apps/web`                                                                                               |
+| Backend logic                            | `libs/api/<domain>`, one library per domain, in DDD layers, see [libs/api/AGENTS.md](libs/api/AGENTS.md) |
+| Access control for the backend           | `libs/api/access`, imported as `@boilerplate/api-access`                                                 |
+| Response envelope for the backend        | `libs/api/responses`, imported as `@boilerplate/api-responses`                                           |
+| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`                                                        |
+| Presentational components                | `libs/web/ui`, see [Web app](#web-app)                                                                   |
+| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts`                                            |
 
 - Apps stay thin. Logic lives in libraries, because Nx checks the allowed
   dependencies (`@nx/enforce-module-boundaries`) between projects, not between

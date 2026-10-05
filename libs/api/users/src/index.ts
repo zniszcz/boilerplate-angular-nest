@@ -1,8 +1,6 @@
-export * from './lib/dto/login.dto';
-export * from './lib/dto/user.dto';
-export * from './lib/permission.entity';
-export * from './lib/permissions';
-export * from './lib/refresh-token.entity';
-export * from './lib/seed';
-export * from './lib/user.entity';
-export * from './lib/users.module';
+// Public API of the users domain. Other domains import only from here, and
+// only in their infrastructure layer.
+export { Credentials, UserQueries, type UserView } from './lib/application';
+export { PERMISSIONS } from './lib/domain';
+export { seedUsers } from './lib/infrastructure/seed';
+export { USERS_ENTITIES, UsersModule } from './lib/users.module';

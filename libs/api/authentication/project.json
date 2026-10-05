@@ -1,0 +1,9 @@
+{
+  "name": "api-authentication",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/authentication/src",
+  "projectType": "library",
+  "tags": ["scope:api", "type:domain"],
+  "// targets": "to see all targets run: nx show project authentication --web",
+  "targets": {}
+}

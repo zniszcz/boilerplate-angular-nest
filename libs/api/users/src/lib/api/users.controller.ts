@@ -4,16 +4,16 @@ import {
   type AuthUser,
   CurrentUser,
   RequirePermissions,
-} from '@boilerplate/api-auth';
+} from '@boilerplate/api-access';
 import { AppException } from '@boilerplate/api-responses';
-import { UserDto } from './dto/user.dto';
-import { PERMISSIONS } from './permissions';
-import { UsersService } from './users.service';
+import { UserQueries, type UserView } from '../application';
+import { PERMISSIONS } from '../domain';
+import type { UserDto } from './user.dto';
 
 @ApiCookieAuth()
 @Controller('users')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(private readonly users: UserQueries) {}
 
   /** The logged in user. */
   @Get('me')
@@ -24,13 +24,18 @@ export class UsersController {
     if (!user) {
       throw new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_UNAUTHENTICATED');
     }
-    return this.users.toDto(user);
+    return toDto(user);
   }
 
   /** All users. Example of a route that needs a permission. */
   @Get()
   @RequirePermissions(PERMISSIONS.usersRead)
   async list(): Promise<UserDto[]> {
-    return (await this.users.findAll()).map((u) => this.users.toDto(u));
+    return (await this.users.list()).map(toDto);
   }
+}
+
+/** Copies only the fields the API may show. */
+function toDto(user: UserView): UserDto {
+  return { id: user.id, email: user.email, permissions: user.permissions };
 }
