@@ -1,8 +1,9 @@
 # Agent rules
 
 Rules for the whole repository. Deeper `AGENTS.md` files add rules for their
-directory. Why each decision was made: [docs/adr](docs/adr/README.md). How to
-run and change things: [README](README.md).
+directory. Why each decision was made: [docs/adr](docs/adr/README.md). How the
+system fits together, with links to every concept and README:
+[docs/README.md](docs/README.md). Read only the document the task needs.
 
 ## Language and commits
 
@@ -27,7 +28,7 @@ Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`, `pnpm versions`,
 ## Where code goes
 
 - Apps only wire things together. Logic lives in libraries. See
-  [Where code goes](README.md#where-code-goes) and
+  [Code](docs/README.md#code) and
   [ADR 0005](docs/adr/0005-nx-monorepo-layout.md).
 - Every project has two Nx tags in `project.json`, one `scope:*` and one
   `type:*`. A new library needs both, or the boundary rules cannot check it.
@@ -70,4 +71,8 @@ matters more than performance. See
   it with a new one.
 - A rule that follows from a decision goes to the deepest `AGENTS.md` it
   applies to as a whole, and links to the ADR instead of repeating it.
+- How something works is described next to its code, in the `README.md` of
+  that app or library. A mechanism that spans several libraries and can be
+  drawn goes to `docs/concepts/`. The root `README.md` stays a short start;
+  everything else is linked from `docs/README.md`.
 - A new `AGENTS.md` needs a `CLAUDE.md` next to it containing `@AGENTS.md`.

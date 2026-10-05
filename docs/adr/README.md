@@ -31,3 +31,4 @@ code.
 | [0017](0017-spartan-and-storybook.md)               | spartan/ui atoms and Storybook as an app                            |
 | [0018](0018-loading-states-and-motion.md)           | Loading states and motion as a system                               |
 | [0019](0019-ci-pipeline.md)                         | CI checks everything, builds only changed images                    |
+| [0020](0020-documentation-layout.md)                | Documentation in the shape of arc42, next to the code               |
