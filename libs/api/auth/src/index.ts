@@ -1,3 +1,4 @@
+export * from './lib/api-error';
 export * from './lib/auth-user';
 export * from './lib/auth.module';
 export * from './lib/cookie';

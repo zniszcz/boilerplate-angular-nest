@@ -20,6 +20,12 @@ export const REFRESH_THROTTLE = {
   blockDuration: 60_000,
 };
 
+/** The body of a 429, for Swagger. */
+export const TOO_MANY_ATTEMPTS_EXAMPLE = {
+  statusCode: 429,
+  message: 'Too many attempts, try again later',
+};
+
 /**
  * Counts requests per client address. On the server every request comes
  * from Traefik, so the address is read from CF-Connecting-IP. The header

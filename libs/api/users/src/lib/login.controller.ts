@@ -13,6 +13,7 @@ import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import {
   ACCESS_TOKEN_COOKIE,
+  ApiError,
   accessTokenCookieOptions,
   Public,
   REFRESH_TOKEN_COOKIE,
@@ -21,7 +22,11 @@ import {
   verifyPassword,
 } from '@boilerplate/api-auth';
 import { LoginDto } from './dto/login.dto';
-import { LoginThrottlerGuard, REFRESH_THROTTLE } from './login-throttler.guard';
+import {
+  LoginThrottlerGuard,
+  REFRESH_THROTTLE,
+  TOO_MANY_ATTEMPTS_EXAMPLE,
+} from './login-throttler.guard';
 import { UserDto } from './dto/user.dto';
 import { SessionsService } from './sessions.service';
 import type { User } from './user.entity';
@@ -40,6 +45,25 @@ export class LoginController {
   @Post('login')
   @HttpCode(200)
   @UseGuards(LoginThrottlerGuard)
+  @ApiError(400, 'The body does not match LoginDto', {
+    message: [
+      'email must be an email address',
+      'password must not be empty',
+      'password must be text',
+    ],
+    error: 'Bad Request',
+    statusCode: 400,
+  })
+  @ApiError(401, 'Unknown email or wrong password', {
+    message: 'Invalid email or password',
+    error: 'Unauthorized',
+    statusCode: 401,
+  })
+  @ApiError(
+    429,
+    'More than 5 attempts a minute from one address. Blocks for 15 minutes, Retry-After gives the seconds left',
+    TOO_MANY_ATTEMPTS_EXAMPLE,
+  )
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -63,6 +87,16 @@ export class LoginController {
   @HttpCode(200)
   @UseGuards(LoginThrottlerGuard)
   @Throttle({ default: REFRESH_THROTTLE })
+  @ApiError(
+    401,
+    'Missing, expired or reused refresh token. Both cookies are cleared',
+    { message: 'Unauthorized', statusCode: 401 },
+  )
+  @ApiError(
+    429,
+    'More than 20 attempts a minute from one address. Blocks for 1 minute, Retry-After gives the seconds left',
+    TOO_MANY_ATTEMPTS_EXAMPLE,
+  )
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

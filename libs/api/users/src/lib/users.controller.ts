@@ -1,6 +1,7 @@
 import { Controller, Get, NotFoundException } from '@nestjs/common';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import {
+  ApiError,
   type AuthUser,
   CurrentUser,
   RequirePermissions,
@@ -16,6 +17,10 @@ export class UsersController {
 
   /** The logged in user. */
   @Get('me')
+  @ApiError(404, 'The user was deleted after the token was issued', {
+    message: 'Not Found',
+    statusCode: 404,
+  })
   async me(@CurrentUser() current: AuthUser): Promise<UserDto> {
     const user = await this.users.findById(current.id);
     if (!user) {

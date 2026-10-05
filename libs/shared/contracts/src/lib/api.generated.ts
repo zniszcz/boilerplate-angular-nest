@@ -207,6 +207,57 @@ export interface operations {
           'application/json': components['schemas']['UserDto'];
         };
       };
+      /** @description The body does not match LoginDto */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": [
+           *         "email must be an email address",
+           *         "password must not be empty",
+           *         "password must be text"
+           *       ],
+           *       "error": "Bad Request",
+           *       "statusCode": 400
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
+      /** @description Unknown email or wrong password */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Invalid email or password",
+           *       "error": "Unauthorized",
+           *       "statusCode": 401
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
+      /** @description More than 5 attempts a minute from one address. Blocks for 15 minutes, Retry-After gives the seconds left */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "statusCode": 429,
+           *       "message": "Too many attempts, try again later"
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
     };
   };
   LoginController_refresh: {
@@ -224,6 +275,36 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['UserDto'];
+        };
+      };
+      /** @description Missing, expired or reused refresh token. Both cookies are cleared */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Unauthorized",
+           *       "statusCode": 401
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
+      /** @description More than 20 attempts a minute from one address. Blocks for 1 minute, Retry-After gives the seconds left */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "statusCode": 429,
+           *       "message": "Too many attempts, try again later"
+           *     }
+           */
+          'application/json': unknown;
         };
       };
     };
@@ -262,6 +343,36 @@ export interface operations {
           'application/json': components['schemas']['UserDto'];
         };
       };
+      /** @description Missing, expired or invalid access token */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Unauthorized",
+           *       "statusCode": 401
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
+      /** @description The user was deleted after the token was issued */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Not Found",
+           *       "statusCode": 404
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
     };
   };
   UsersController_list: {
@@ -279,6 +390,36 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['UserDto'][];
+        };
+      };
+      /** @description Missing, expired or invalid access token */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Unauthorized",
+           *       "statusCode": 401
+           *     }
+           */
+          'application/json': unknown;
+        };
+      };
+      /** @description The user lacks a permission: users:read */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message": "Forbidden",
+           *       "statusCode": 403
+           *     }
+           */
+          'application/json': unknown;
         };
       };
     };
