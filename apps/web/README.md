@@ -1,6 +1,6 @@
 # web
 
-The Angular app. In production it is served by nginx, configured in
+The Angular app, served in production by nginx with strict security headers. The nginx setup is in
 [nginx.conf.template](nginx.conf.template).
 
 ## Storybook

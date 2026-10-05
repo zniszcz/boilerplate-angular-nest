@@ -28,6 +28,8 @@
     "lint": "nx run-many -t lint",
     "architecture": "depcruise apps libs --config .dependency-cruiser.cjs",
     "versions": "syncpack lint",
+    "docs:generate": "node scripts/docs.mjs generate",
+    "docs:check": "node scripts/docs.mjs check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

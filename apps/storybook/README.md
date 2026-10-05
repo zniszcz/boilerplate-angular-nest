@@ -1,6 +1,6 @@
 # storybook
 
-Storybook for the web UI. It collects the stories that sit next to the
+Storybook for the web UI, opening every story at phone width. It collects the stories that sit next to the
 components in `libs/web/helm` (atoms) and `libs/web/ui` (molecules,
 organisms, templates). Stories open at phone width; the viewport menu has the
 Tailwind breakpoints.

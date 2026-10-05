@@ -10,6 +10,10 @@ code.
   write a new record and mark the old one `Superseded by`.
 - A fork of this template keeps these records and continues the numbering.
 
+Generated from the files here by `pnpm docs:generate`.
+
+<!-- generated:adrs -->
+
 | Nr                                                  | Decision                                                            |
 | --------------------------------------------------- | ------------------------------------------------------------------- |
 | [0001](0001-record-decisions.md)                    | Record decisions in ADRs and rules in AGENTS.md                     |
@@ -32,3 +36,5 @@ code.
 | [0018](0018-loading-states-and-motion.md)           | Loading states and motion as a system                               |
 | [0019](0019-ci-pipeline.md)                         | CI checks everything, builds only changed images                    |
 | [0020](0020-documentation-layout.md)                | Documentation in the shape of arc42, next to the code               |
+
+<!-- /generated:adrs -->

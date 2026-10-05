@@ -1,6 +1,6 @@
 # api
 
-The NestJS app. It only wires the modules from `libs/api` together; the
+The NestJS API, which only wires the modules from `libs/api` together. The
 rules are in [AGENTS.md](AGENTS.md). Configuration: [local development
 setup](../../docs/development/setup.md#configuration).
 

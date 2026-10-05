@@ -38,7 +38,9 @@ Quality goals, in order:
 flowchart TB
     user["<b>User</b><br/><i>Person</i><br/>Browser, usually a phone"]:::person
     cloudflare["<b>Cloudflare</b><br/><i>External system</i><br/>DNS, TLS, proxy, Access"]:::external
+    %% A new outside service the app talks to becomes a node here.
     app["<b>Application</b><br/><i>Software system</i><br/>Web app and API from this template"]:::system
+    %% Gmail SMTP: drop "planned" when the API sends its first e-mail.
     smtp["<b>Gmail SMTP</b><br/><i>External system</i><br/>E-mails, planned"]:::external
     github["<b>GitHub</b><br/><i>External system</i><br/>Code, CI, image registry GHCR"]:::external
     user -- HTTPS --> cloudflare
@@ -75,9 +77,11 @@ flowchart TB
         ingress["<b>Ingress</b><br/><i>Traefik</i><br/>/api to API, the rest to web"]:::container
         web["<b>Web</b><br/><i>nginx</i><br/>Angular SPA, Storybook"]:::container
         api["<b>API</b><br/><i>NestJS</i><br/>REST under /api"]:::container
+        %% Every app in apps/ and every scheduled job is a node in this cluster.
         cleanup["<b>Cleanup</b><br/><i>CronJob</i><br/>API image, daily"]:::container
         db[("<b>PostgreSQL</b><br/><i>CloudNativePG</i><br/>Users, sessions")]:::container
         media[("<b>Media</b><br/><i>Volume</i><br/>/app/media")]:::container
+        %% Valkey: when the API uses REDIS_URL, change "Not used yet" and add api --> valkey.
         valkey[("<b>Valkey</b><br/><i>Redis compatible</i><br/>Not used yet")]:::container
     end
     user -- "HTTPS through Cloudflare" --> ingress
@@ -96,16 +100,29 @@ flowchart TB
 
 ### Code
 
-| Code                                     | Place                                                                                                       |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Bootstrapping and wiring of the backend  | `apps/api`                                                                                                  |
-| Bootstrapping and wiring of the frontend | `apps/web`                                                                                                  |
-| Backend logic                            | `libs/api/<domain>`, one library per domain, in DDD layers, see [libs/api/AGENTS.md](../libs/api/AGENTS.md) |
-| Access control for the backend           | `libs/api/access`, imported as `@boilerplate/api-access`                                                    |
-| Response envelope for the backend        | `libs/api/responses`, imported as `@boilerplate/api-responses`                                              |
-| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`                                                           |
-| Presentational components                | `libs/web/ui`, see [frontend](concepts/frontend.md)                                                         |
-| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts`                                               |
+Every app and library, with the first paragraph of its README. Generated
+from the repository by `pnpm docs:generate`; edit the README, not this table.
+
+<!-- generated:projects -->
+
+| Project                                                         | Tags                            | What it is                                                                                                                                                                                           |
+| --------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [apps/api](../apps/api/README.md)                               | `scope:api` `type:app`          | The NestJS API, which only wires the modules from `libs/api` together.                                                                                                                               |
+| [apps/storybook](../apps/storybook/README.md)                   | `scope:web` `type:app`          | Storybook for the web UI, opening every story at phone width.                                                                                                                                        |
+| [apps/web](../apps/web/README.md)                               | `scope:web` `type:app`          | The Angular app, served in production by nginx with strict security headers.                                                                                                                         |
+| [libs/api/access](../libs/api/access/README.md)                 | `scope:api` `type:platform`     | Technical access control for the backend, shared by every domain: the global guard, `@Public()`, `@RequirePermissions()`, `@CurrentUser()`, JWT access tokens, cookie settings and password hashing. |
+| [libs/api/authentication](../libs/api/authentication/README.md) | `scope:api` `type:domain`       | The authentication domain: login, refresh and logout, with the Session aggregate and its refresh token rotation rules.                                                                               |
+| [libs/api/responses](../libs/api/responses/README.md)           | `scope:api` `type:platform`     | The response envelope for the backend: coded exceptions, the Swagger decorator for errors and the marker for routes without an envelope.                                                             |
+| [libs/api/users](../libs/api/users/README.md)                   | `scope:api` `type:domain`       | The users domain: the User aggregate with its permissions.                                                                                                                                           |
+| [libs/shared/contracts](../libs/shared/contracts/README.md)     | `scope:shared` `type:contracts` | Types shared by the web app and the API: the generated API types and the catalog of response codes with the envelope.                                                                                |
+| [libs/web/auth](../libs/web/auth/README.md)                     | `scope:web` `type:feature`      | Login on the web side: the login page, `AuthStore` with the logged in user, route guards and the interceptor that refreshes the session.                                                             |
+| [libs/web/errors](../libs/web/errors/README.md)                 | `scope:web` `type:feature`      | Error pages, such as the page for an unknown address.                                                                                                                                                |
+| [libs/web/helm](../libs/web/helm/README.md)                     | `scope:web` `type:ui`           | The styled layer of spartan/ui: Tailwind components on top of the headless `@spartan-ng/brain`.                                                                                                      |
+| [libs/web/home](../libs/web/home/README.md)                     | `scope:web` `type:feature`      | The home page for a logged in user: a summary of the account and, with the `users:read` permission, the list of users loaded through `UsersStore`.                                                   |
+| [libs/web/i18n](../libs/web/i18n/README.md)                     | `scope:web` `type:feature`      | Transloco setup and the language switcher.                                                                                                                                                           |
+| [libs/web/ui](../libs/web/ui/README.md)                         | `scope:web` `type:ui`           | Molecules, organisms and templates built from the spartan/ui atoms in `libs/web/helm`, each with a story.                                                                                            |
+
+<!-- /generated:projects -->
 
 - Apps stay thin. Logic lives in libraries, because Nx checks the allowed
   dependencies (`@nx/enforce-module-boundaries`) between projects, not between
@@ -171,20 +188,18 @@ scripts/test-prod-images.sh web                  # test one image
 
 ## 8. Cross-cutting concepts
 
-Mechanisms that span several libraries:
+Mechanisms that span several libraries, generated from `docs/concepts`:
 
-- [Authentication](concepts/authentication.md): login, refresh, rotation.
-- [API contracts](concepts/api-contracts.md): the envelope, codes, DTOs to
-  types.
-- [Frontend](concepts/frontend.md): atomic design, loading, motion.
+<!-- generated:concepts -->
 
-Topics of one place live next to their code:
+- [API contracts](concepts/api-contracts.md): How the backend and the web app agree on every request and response.
+- [Authentication](concepts/authentication.md): How login, refresh and logout work across three libraries.
+- [Frontend](concepts/frontend.md): How the web app is put together, from spartan/ui atoms to pages, and how it loads and moves.
 
-- [Database and migrations](../apps/api/README.md#database)
-- [Translations](../libs/web/i18n/README.md)
-- [Security headers and Storybook in the web image](../apps/web/README.md)
-- [spartan/ui atoms](../libs/web/helm/README.md)
-- [Storybook](../apps/storybook/README.md)
+<!-- /generated:concepts -->
+
+Topics of one app or library are in its README, listed under
+[Code](#code).
 
 Working on the code: [local setup](development/setup.md) and
 [conventions](development/conventions.md).

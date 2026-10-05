@@ -42,6 +42,7 @@ jobs:
       - run: pnpm build
       - run: pnpm nx run storybook:build-storybook
       - run: pnpm contracts:check
+      - run: pnpm docs:check
 
   changes:
     name: Find changed apps

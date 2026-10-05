@@ -61,6 +61,27 @@ Every response the frontend sees, apart from files, has an envelope with a
 matters more than performance. See
 [ADR 0012](docs/adr/0012-response-envelope.md).
 
+## Documentation
+
+- Lists in `docs/README.md` and `docs/adr/README.md` between
+  `<!-- generated:… -->` markers come from `pnpm docs:generate`; never edit
+  them by hand. The pre-commit hook regenerates them and CI checks them with
+  `pnpm docs:check`.
+- The first sentence of an app's or library's `README.md` is its description
+  in the project list, so keep it a true, specific summary.
+- After a change, check whether it changes what `docs/README.md` describes,
+  and update it in the same commit:
+
+  | Change                                                                  | Update in `docs/README.md`         |
+  | ----------------------------------------------------------------------- | ---------------------------------- |
+  | a new app in `apps/`, or a new service in `compose.yaml` or the cluster | container diagram (5)              |
+  | code starts or stops using a service, such as a first Redis client      | container diagram (5)              |
+  | a new external system, such as SMTP, S3 or an identity provider         | context diagram (3)                |
+  | a change to CI, images, health checks or how the app is deployed        | deployment (7)                     |
+  | a new major choice, such as a framework or a pattern                    | solution strategy (4), with an ADR |
+
+  Each diagram node also says in a `%%` comment when it must change.
+
 ## Decisions
 
 - When a design or architectural decision is made during a conversation,

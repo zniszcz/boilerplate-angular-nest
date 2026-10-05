@@ -57,6 +57,8 @@ These need the [machine setup](docs/development/setup.md#machine-setup).
 | `pnpm lint`                                             | Runs ESLint in all projects                                                       |
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                              |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version |
+| `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index                  |
+| `pnpm docs:check`                                       | Fails when those lists are out of date                                            |
 | `pnpm format`                                           | Formats all files with Prettier                                                   |
 | `pnpm format:check`                                     | Checks formatting without changing files                                          |
 | `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                                  |
