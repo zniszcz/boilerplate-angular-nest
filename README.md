@@ -333,6 +333,20 @@ place blocks. Code goes by what it does:
   leaks memory. Use `toSignal`, the `async` pipe or `takeUntilDestroyed()`.
   ESLint checks it with `rxjs-x/no-ignored-subscription`.
 
+## CI
+
+GitHub Actions, [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Every
+run checks the whole repository with the same commands as before a commit.
+On `main` it then builds, tests and pushes only the images of apps that
+changed since the last successful run, to
+`ghcr.io/zniszcz/boilerplate-angular-nest/<app>` with the tags `latest` and
+the commit SHA. Why: [ADR 0019](docs/adr/0019-ci-pipeline.md).
+
+```sh
+NX_BASE=HEAD~3 node scripts/changed-images.mjs   # which images would build
+scripts/test-prod-images.sh web                  # test one image
+```
+
 ## Production images
 
 Each app has one Dockerfile with separate stages. Docker Compose uses the
