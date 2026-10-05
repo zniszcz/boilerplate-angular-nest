@@ -158,6 +158,47 @@ export interface components {
       /** @description Permission codes, for example `users:read`. */
       permissions: string[];
     };
+    /** @enum {string} */
+    ResponseCode:
+      | 'OK'
+      | 'VALIDATION_ERROR'
+      | 'AUTH_INVALID_CREDENTIALS'
+      | 'AUTH_TOO_MANY_ATTEMPTS'
+      | 'AUTH_UNAUTHENTICATED'
+      | 'AUTH_REFRESH_REJECTED'
+      | 'AUTH_FORBIDDEN'
+      | 'ROUTE_NOT_FOUND'
+      | 'UNEXPECTED_ERROR';
+    /** @enum {string} */
+    FieldCode:
+      | 'REQUIRED'
+      | 'UNKNOWN_FIELD'
+      | 'INVALID_TYPE'
+      | 'INVALID_EMAIL'
+      | 'TOO_SHORT'
+      | 'TOO_LONG'
+      | 'LENGTH_OUT_OF_RANGE'
+      | 'TOO_SMALL'
+      | 'TOO_LARGE'
+      | 'NOT_ALLOWED'
+      | 'INVALID_VALUE';
+    FieldError: {
+      /** @example email */
+      field: string;
+      code: components['schemas']['FieldCode'];
+      params?: {
+        [key: string]: unknown;
+      };
+    };
+    ErrorEnvelope: {
+      /** @enum {string} */
+      status: 'error';
+      code: components['schemas']['ResponseCode'];
+      params?: {
+        [key: string]: unknown;
+      };
+      details?: components['schemas']['FieldError'][];
+    };
   };
   responses: never;
   parameters: never;
@@ -181,7 +222,27 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HelloDto'];
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['HelloDto'];
+          };
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -204,10 +265,15 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserDto'];
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['UserDto'];
+          };
         };
       };
-      /** @description The body does not match LoginDto */
+      /** @description `VALIDATION_ERROR`: The body does not match LoginDto */
       400: {
         headers: {
           [name: string]: unknown;
@@ -215,19 +281,14 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": [
-           *         "email must be an email address",
-           *         "password must not be empty",
-           *         "password must be text"
-           *       ],
-           *       "error": "Bad Request",
-           *       "statusCode": 400
+           *       "status": "error",
+           *       "code": "VALIDATION_ERROR"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
-      /** @description Unknown email or wrong password */
+      /** @description `AUTH_INVALID_CREDENTIALS`: Unknown email or wrong password */
       401: {
         headers: {
           [name: string]: unknown;
@@ -235,15 +296,14 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": "Invalid email or password",
-           *       "error": "Unauthorized",
-           *       "statusCode": 401
+           *       "status": "error",
+           *       "code": "AUTH_INVALID_CREDENTIALS"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
-      /** @description More than 5 attempts a minute from one address. Blocks for 15 minutes, Retry-After gives the seconds left */
+      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 5 attempts a minute from one address. Blocks for 15 minutes; `retryAfter` and the Retry-After header give the seconds left */
       429: {
         headers: {
           [name: string]: unknown;
@@ -251,11 +311,29 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "statusCode": 429,
-           *       "message": "Too many attempts, try again later"
+           *       "status": "error",
+           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
+           *       "params": {
+           *         "retryAfter": 900
+           *       }
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -274,10 +352,15 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserDto'];
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['UserDto'];
+          };
         };
       };
-      /** @description Missing, expired or reused refresh token. Both cookies are cleared */
+      /** @description `AUTH_REFRESH_REJECTED`: Missing, expired or reused refresh token. Both cookies are cleared */
       401: {
         headers: {
           [name: string]: unknown;
@@ -285,14 +368,14 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": "Unauthorized",
-           *       "statusCode": 401
+           *       "status": "error",
+           *       "code": "AUTH_REFRESH_REJECTED"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
-      /** @description More than 20 attempts a minute from one address. Blocks for 1 minute, Retry-After gives the seconds left */
+      /** @description `AUTH_TOO_MANY_ATTEMPTS`: More than 20 attempts a minute from one address. Blocks for 1 minute */
       429: {
         headers: {
           [name: string]: unknown;
@@ -300,11 +383,29 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "statusCode": 429,
-           *       "message": "Too many attempts, try again later"
+           *       "status": "error",
+           *       "code": "AUTH_TOO_MANY_ATTEMPTS",
+           *       "params": {
+           *         "retryAfter": 60
+           *       }
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -318,11 +419,34 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      204: {
+      200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            /** @enum {unknown|null} */
+            data: null;
+          };
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -340,10 +464,15 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserDto'];
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['UserDto'];
+          };
         };
       };
-      /** @description Missing, expired or invalid access token */
+      /** @description `AUTH_UNAUTHENTICATED`: Missing or expired access token, or the account no longer exists. Refresh the session and repeat */
       401: {
         headers: {
           [name: string]: unknown;
@@ -351,26 +480,26 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": "Unauthorized",
-           *       "statusCode": 401
+           *       "status": "error",
+           *       "code": "AUTH_UNAUTHENTICATED"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
-      /** @description The user was deleted after the token was issued */
-      404: {
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           /**
            * @example {
-           *       "message": "Not Found",
-           *       "statusCode": 404
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -389,10 +518,15 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserDto'][];
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['UserDto'][];
+          };
         };
       };
-      /** @description Missing, expired or invalid access token */
+      /** @description `AUTH_UNAUTHENTICATED`: Missing or expired access token, or the account no longer exists. Refresh the session and repeat */
       401: {
         headers: {
           [name: string]: unknown;
@@ -400,14 +534,14 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": "Unauthorized",
-           *       "statusCode": 401
+           *       "status": "error",
+           *       "code": "AUTH_UNAUTHENTICATED"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
-      /** @description The user lacks a permission: users:read */
+      /** @description `AUTH_FORBIDDEN`: The user lacks a permission: users:read */
       403: {
         headers: {
           [name: string]: unknown;
@@ -415,11 +549,26 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message": "Forbidden",
-           *       "statusCode": 403
+           *       "status": "error",
+           *       "code": "AUTH_FORBIDDEN"
            *     }
            */
-          'application/json': unknown;
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };

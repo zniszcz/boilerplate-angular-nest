@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ApiExtension } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { ApiError } from './api-error';
+import { ApiError } from '@boilerplate/api-responses';
 import type { AuthUser } from './auth-user';
 
 export const IS_PUBLIC = 'auth:isPublic';
@@ -27,10 +27,11 @@ export const Public = () =>
 export const RequirePermissions = (...permissions: string[]) =>
   applyDecorators(
     SetMetadata(REQUIRED_PERMISSIONS, permissions),
-    ApiError(403, `The user lacks a permission: ${permissions.join(', ')}`, {
-      message: 'Forbidden',
-      statusCode: 403,
-    }),
+    ApiError(
+      403,
+      'AUTH_FORBIDDEN',
+      `The user lacks a permission: ${permissions.join(', ')}`,
+    ),
   );
 
 /** Injects the logged in user. */

@@ -1,13 +1,13 @@
 import {
   type CanActivate,
   type ExecutionContext,
-  ForbiddenException,
+  HttpStatus,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import { AppException } from '@boilerplate/api-responses';
 import type { AccessTokenClaims, AuthUser } from './auth-user';
 import { ACCESS_TOKEN_COOKIE } from './cookie';
 import { IS_PUBLIC, REQUIRED_PERMISSIONS } from './decorators';
@@ -36,13 +36,13 @@ export class AuthGuard implements CanActivate {
       .getRequest<Request & { user?: AuthUser }>();
     const token = readToken(request);
     if (!token) {
-      throw new UnauthorizedException();
+      throw unauthenticated();
     }
     let claims: AccessTokenClaims;
     try {
       claims = await this.jwt.verifyAsync<AccessTokenClaims>(token);
     } catch {
-      throw new UnauthorizedException();
+      throw unauthenticated();
     }
     const user: AuthUser = {
       id: claims.sub,
@@ -57,10 +57,14 @@ export class AuthGuard implements CanActivate {
         targets,
       ) ?? [];
     if (!required.every((p) => user.permissions.includes(p))) {
-      throw new ForbiddenException();
+      throw new AppException(HttpStatus.FORBIDDEN, 'AUTH_FORBIDDEN');
     }
     return true;
   }
+}
+
+function unauthenticated(): AppException {
+  return new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_UNAUTHENTICATED');
 }
 
 function readToken(request: Request): string | undefined {

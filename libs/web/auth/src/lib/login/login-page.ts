@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
+import { errorCode, type ErrorEnvelope } from '@boilerplate/contracts';
 import {
   CenteredCard,
   LoginForm,
@@ -37,16 +38,28 @@ export class LoginPage {
       await this.store.login(credentials);
       await this.router.navigate(['/']);
     } catch (error) {
-      // The API already translated the message to the current language.
-      const message =
-        error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.error.set(
-        typeof message === 'string'
-          ? message
-          : this.transloco.translate('auth.login.failed'),
-      );
+      const body: unknown =
+        error instanceof HttpErrorResponse ? error.error : null;
+      this.error.set(this.errorText(body));
     } finally {
       this.pending.set(false);
+    }
+  }
+
+  /** Texts come from Transloco by code, never from the API. */
+  private errorText(body: unknown): string {
+    const code = errorCode(body);
+    switch (code) {
+      case 'AUTH_INVALID_CREDENTIALS':
+        return this.transloco.translate(`errors.${code}`);
+      case 'AUTH_TOO_MANY_ATTEMPTS': {
+        const seconds = Number((body as ErrorEnvelope).params?.['retryAfter']);
+        return this.transloco.translate(`errors.${code}`, {
+          minutes: Math.max(1, Math.ceil(seconds / 60)),
+        });
+      }
+      default:
+        return this.transloco.translate('auth.login.failed');
     }
   }
 }

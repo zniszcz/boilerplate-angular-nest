@@ -1,6 +1,6 @@
 # 0012. Response envelope with codes from one catalog
 
-- Status: Accepted, not implemented yet
+- Status: Accepted, implemented 2026-10-05
 - Date: 2026-10-05
 
 ## Context

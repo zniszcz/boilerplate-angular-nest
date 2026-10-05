@@ -17,5 +17,9 @@
   "home": {
     "greeting": "Logged in as {{ email }}",
     "permissions": "Permissions"
+  },
+  "errors": {
+    "AUTH_INVALID_CREDENTIALS": "Invalid email or password",
+    "AUTH_TOO_MANY_ATTEMPTS": "Too many attempts, try again in {{ minutes }} min"
   }
 }

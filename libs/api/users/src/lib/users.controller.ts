@@ -1,11 +1,11 @@
-import { Controller, Get, NotFoundException } from '@nestjs/common';
+import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import {
-  ApiError,
   type AuthUser,
   CurrentUser,
   RequirePermissions,
 } from '@boilerplate/api-auth';
+import { AppException } from '@boilerplate/api-responses';
 import { UserDto } from './dto/user.dto';
 import { PERMISSIONS } from './permissions';
 import { UsersService } from './users.service';
@@ -17,14 +17,12 @@ export class UsersController {
 
   /** The logged in user. */
   @Get('me')
-  @ApiError(404, 'The user was deleted after the token was issued', {
-    message: 'Not Found',
-    statusCode: 404,
-  })
   async me(@CurrentUser() current: AuthUser): Promise<UserDto> {
     const user = await this.users.findById(current.id);
+    // The account was deleted after the token was issued: the session is
+    // no longer valid, and the next refresh fails too.
     if (!user) {
-      throw new NotFoundException();
+      throw new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_UNAUTHENTICATED');
     }
     return this.users.toDto(user);
   }

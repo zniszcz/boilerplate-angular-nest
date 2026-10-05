@@ -225,7 +225,7 @@ These need the [machine setup](#setup).
   again means it was stolen, so the whole session (token family) is revoked.
   A reuse within 30 seconds is two tabs refreshing at once and is only
   refused.
-- The web app refreshes on its own: a 401 triggers one shared refresh, then
+- The web app refreshes on its own: `AUTH_UNAUTHENTICATED` triggers one shared refresh, then
   the request is repeated. When that fails, the user goes to `/login`.
 - Tokens are never in a response body. The cookies are `HttpOnly`, so page
   scripts cannot read them and an XSS attack cannot steal them, and
@@ -275,17 +275,16 @@ is a browser that still has the old web app open after a deployment.
 
 ## Translations
 
-English is the default language, Polish the second one. Each side translates
-its own texts.
+English is the default language, Polish the second one. The web app
+translates every text, including API errors: the API sends codes, not
+messages. See [ADR 0012](docs/adr/0012-response-envelope.md).
 
-- Web app: Transloco, texts in `apps/web/public/i18n/<language>.json`. The
-  language changes without a reload and the choice is remembered in the
+- Texts are in `apps/web/public/i18n/<language>.json`, handled by Transloco.
+  The language changes without a reload and the choice is remembered in the
   browser. One build serves every language.
-- API: nestjs-i18n, texts in `apps/api/src/i18n/<language>/<file>.json`, used
-  as `<file>.<key>`. The language comes from the `Accept-Language` header,
-  which the web app sends with every request. Validation messages in DTOs use
-  `i18nValidationMessage('validation.<key>')`.
-- A new language needs a file on both sides and an entry in `LANGUAGES` in
+- API error codes are translated under `errors.<CODE>`, with `params` from the
+  error envelope.
+- A new language needs a file there and an entry in `LANGUAGES` in
   `apps/web/src/app/i18n.ts`.
 
 ## Web app
@@ -354,14 +353,15 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 ## Where code goes
 
-| Code                                     | Place                                                         |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| Bootstrapping and wiring of the backend  | `apps/api`                                                    |
-| Bootstrapping and wiring of the frontend | `apps/web`                                                    |
-| Backend logic                            | `libs/api/<domain>`, one library per domain                   |
-| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`             |
-| Presentational components                | `libs/web/ui`, see [Web app](#web-app)                        |
-| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts` |
+| Code                                     | Place                                                          |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| Bootstrapping and wiring of the backend  | `apps/api`                                                     |
+| Bootstrapping and wiring of the frontend | `apps/web`                                                     |
+| Backend logic                            | `libs/api/<domain>`, one library per domain                    |
+| Response envelope for the backend        | `libs/api/responses`, imported as `@boilerplate/api-responses` |
+| Frontend pages                           | `libs/web/<feature>`, for example `libs/web/auth`              |
+| Presentational components                | `libs/web/ui`, see [Web app](#web-app)                         |
+| API types for the frontend, generated    | `libs/shared/contracts`, imported as `@boilerplate/contracts`  |
 
 - Apps stay thin. Logic lives in libraries, because Nx checks the allowed
   dependencies (`@nx/enforce-module-boundaries`) between projects, not between

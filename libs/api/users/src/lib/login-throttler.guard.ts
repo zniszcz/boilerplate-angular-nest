@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { type ExecutionContext, HttpStatus, Injectable } from '@nestjs/common';
 import {
   normalizeIp,
-  ThrottlerException,
   ThrottlerGuard,
+  type ThrottlerLimitDetail,
 } from '@nestjs/throttler';
 import type { Request } from 'express';
-import { I18nContext } from 'nestjs-i18n';
+import { AppException } from '@boilerplate/api-responses';
 
 /** Limits per route. Counters live in memory, which fits one API instance. */
 export const LOGIN_THROTTLE = {
@@ -18,12 +18,6 @@ export const REFRESH_THROTTLE = {
   ttl: 60_000,
   limit: 20,
   blockDuration: 60_000,
-};
-
-/** The body of a 429, for Swagger. */
-export const TOO_MANY_ATTEMPTS_EXAMPLE = {
-  statusCode: 429,
-  message: 'Too many attempts, try again later',
 };
 
 /**
@@ -40,9 +34,15 @@ export class LoginThrottlerGuard extends ThrottlerGuard {
     return normalizeIp(ip ?? '', this.ipv6SubnetPrefix);
   }
 
-  protected override async throwThrottlingException(): Promise<void> {
-    throw new ThrottlerException(
-      I18nContext.current()?.t('auth.tooManyAttempts'),
+  /** `retryAfter` is in seconds, the same as the Retry-After header. */
+  protected override async throwThrottlingException(
+    _context: ExecutionContext,
+    detail: ThrottlerLimitDetail,
+  ): Promise<void> {
+    throw new AppException(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'AUTH_TOO_MANY_ATTEMPTS',
+      { params: { retryAfter: detail.timeToBlockExpire } },
     );
   }
 }

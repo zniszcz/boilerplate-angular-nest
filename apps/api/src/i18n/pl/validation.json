@@ -1,5 +1,0 @@
-{
-  "isEmail": "{property} musi być adresem email",
-  "isString": "{property} musi być tekstem",
-  "isNotEmpty": "{property} nie może być puste"
-}

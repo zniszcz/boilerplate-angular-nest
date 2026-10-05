@@ -5,6 +5,7 @@ import {
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { Public } from '@boilerplate/api-auth';
+import { NoEnvelope } from '@boilerplate/api-responses';
 import { MediaHealthIndicator } from './media.health';
 
 /**
@@ -14,8 +15,10 @@ import { MediaHealthIndicator } from './media.health';
  * - ready: everything the app cannot work without. A failure only stops
  *   traffic to the pod. Optional services go here as `degraded`, which keeps
  *   the answer at 200.
+ * The client is Kubernetes, not the web app, so there is no envelope.
  */
 @Public()
+@NoEnvelope()
 @Controller('health')
 export class HealthController {
   constructor(

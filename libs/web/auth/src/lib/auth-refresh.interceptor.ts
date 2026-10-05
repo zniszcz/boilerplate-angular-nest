@@ -7,7 +7,11 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import type { UserDto } from '@boilerplate/contracts';
+import {
+  errorCode,
+  type SuccessEnvelope,
+  type UserDto,
+} from '@boilerplate/contracts';
 import {
   catchError,
   filter,
@@ -26,7 +30,7 @@ import { AuthStore } from './auth.store';
 let refreshing: Observable<UserDto | null> | null = null;
 
 /**
- * On a 401 the access token has expired: exchange the refresh token for new
+ * On AUTH_UNAUTHENTICATED the access token has expired: exchange the refresh token for new
  * ones, then repeat the request once. When that fails too, the session is
  * over and the user goes to /login.
  */
@@ -46,10 +50,10 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
         new HttpRequest('POST', '/api/auth/refresh', null),
       ).pipe(
         filter(
-          (event): event is HttpResponse<UserDto> =>
+          (event): event is HttpResponse<SuccessEnvelope<UserDto>> =>
             event instanceof HttpResponse,
         ),
-        map((response) => response.body),
+        map((response) => response.body?.data ?? null),
         finalize(() => (refreshing = null)),
         shareReplay(1),
       );
@@ -72,5 +76,8 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
 };
 
 function isUnauthorized(error: unknown): boolean {
-  return error instanceof HttpErrorResponse && error.status === 401;
+  return (
+    error instanceof HttpErrorResponse &&
+    errorCode(error.error) === 'AUTH_UNAUTHENTICATED'
+  );
 }

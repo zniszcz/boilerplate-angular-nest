@@ -17,6 +17,7 @@
       "@boilerplate/contracts": ["./libs/shared/contracts/src/index.ts"],
       "@boilerplate/api-users": ["./libs/api/users/src/index.ts"],
       "@boilerplate/api-auth": ["./libs/api/auth/src/index.ts"],
+      "@boilerplate/api-responses": ["./libs/api/responses/src/index.ts"],
       "@boilerplate/web-auth": ["./libs/web/auth/src/index.ts"],
       "@boilerplate/web-ui": ["./libs/web/ui/src/index.ts"],
       "@boilerplate/web-home": ["./libs/web/home/src/index.ts"],

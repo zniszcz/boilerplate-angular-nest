@@ -1,19 +1,17 @@
 import {
+  Body,
   Controller,
   HttpCode,
+  HttpStatus,
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
-  Body,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { I18nContext } from 'nestjs-i18n';
 import {
   ACCESS_TOKEN_COOKIE,
-  ApiError,
   accessTokenCookieOptions,
   Public,
   REFRESH_TOKEN_COOKIE,
@@ -21,12 +19,9 @@ import {
   TokenService,
   verifyPassword,
 } from '@boilerplate/api-auth';
+import { ApiError, AppException } from '@boilerplate/api-responses';
 import { LoginDto } from './dto/login.dto';
-import {
-  LoginThrottlerGuard,
-  REFRESH_THROTTLE,
-  TOO_MANY_ATTEMPTS_EXAMPLE,
-} from './login-throttler.guard';
+import { LoginThrottlerGuard, REFRESH_THROTTLE } from './login-throttler.guard';
 import { UserDto } from './dto/user.dto';
 import { SessionsService } from './sessions.service';
 import type { User } from './user.entity';
@@ -45,24 +40,13 @@ export class LoginController {
   @Post('login')
   @HttpCode(200)
   @UseGuards(LoginThrottlerGuard)
-  @ApiError(400, 'The body does not match LoginDto', {
-    message: [
-      'email must be an email address',
-      'password must not be empty',
-      'password must be text',
-    ],
-    error: 'Bad Request',
-    statusCode: 400,
-  })
-  @ApiError(401, 'Unknown email or wrong password', {
-    message: 'Invalid email or password',
-    error: 'Unauthorized',
-    statusCode: 401,
-  })
+  @ApiError(400, 'VALIDATION_ERROR', 'The body does not match LoginDto')
+  @ApiError(401, 'AUTH_INVALID_CREDENTIALS', 'Unknown email or wrong password')
   @ApiError(
     429,
-    'More than 5 attempts a minute from one address. Blocks for 15 minutes, Retry-After gives the seconds left',
-    TOO_MANY_ATTEMPTS_EXAMPLE,
+    'AUTH_TOO_MANY_ATTEMPTS',
+    'More than 5 attempts a minute from one address. Blocks for 15 minutes; `retryAfter` and the Retry-After header give the seconds left',
+    { retryAfter: 900 },
   )
   async login(
     @Body() body: LoginDto,
@@ -71,8 +55,9 @@ export class LoginController {
     const user = await this.users.findForLogin(body.email);
     // The same error for an unknown email and a wrong password.
     if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
-      throw new UnauthorizedException(
-        I18nContext.current()?.t('auth.invalidCredentials'),
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        'AUTH_INVALID_CREDENTIALS',
       );
     }
     await this.setCookies(response, user, await this.sessions.start(user.id));
@@ -89,13 +74,14 @@ export class LoginController {
   @Throttle({ default: REFRESH_THROTTLE })
   @ApiError(
     401,
+    'AUTH_REFRESH_REJECTED',
     'Missing, expired or reused refresh token. Both cookies are cleared',
-    { message: 'Unauthorized', statusCode: 401 },
   )
   @ApiError(
     429,
-    'More than 20 attempts a minute from one address. Blocks for 1 minute, Retry-After gives the seconds left',
-    TOO_MANY_ATTEMPTS_EXAMPLE,
+    'AUTH_TOO_MANY_ATTEMPTS',
+    'More than 20 attempts a minute from one address. Blocks for 1 minute',
+    { retryAfter: 60 },
   )
   async refresh(
     @Req() request: Request,
@@ -111,7 +97,7 @@ export class LoginController {
         : null;
     if (result.status !== 'rotated' || !user) {
       clearCookies(response);
-      throw new UnauthorizedException();
+      throw new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_REFRESH_REJECTED');
     }
     await this.setCookies(response, user, result.token);
     return this.users.toDto(user);
@@ -119,7 +105,7 @@ export class LoginController {
 
   /** Ends the session and removes both cookies. */
   @Post('logout')
-  @HttpCode(204)
+  @HttpCode(200)
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

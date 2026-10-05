@@ -7,8 +7,13 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { firstValueFrom } from 'rxjs';
-import type { LoginDto, UserDto } from '@boilerplate/contracts';
+import { firstValueFrom, map } from 'rxjs';
+import {
+  errorCode,
+  type LoginDto,
+  type SuccessEnvelope,
+  type UserDto,
+} from '@boilerplate/contracts';
 
 interface AuthState {
   user: UserDto | null;
@@ -29,26 +34,40 @@ export const AuthStore = signalStore(
     /** Asks the API who is logged in. Called once when the app starts. */
     async loadMe(): Promise<void> {
       try {
-        const user = await firstValueFrom(http.get<UserDto>('/api/users/me'));
+        const user = await firstValueFrom(
+          http
+            .get<SuccessEnvelope<UserDto>>('/api/users/me')
+            .pipe(map((response) => response.data)),
+        );
         patchState(store, { user });
       } catch (error) {
-        if (!(error instanceof HttpErrorResponse && error.status === 401)) {
+        if (
+          !(error instanceof HttpErrorResponse) ||
+          errorCode(error.error) !== 'AUTH_UNAUTHENTICATED'
+        ) {
           throw error;
         }
         patchState(store, { user: null });
       }
     },
 
-    /** Rejects with HttpErrorResponse when the API refuses the login. */
+    /**
+     * Rejects with HttpErrorResponse when the API refuses the login. Its
+     * `error` is the error envelope.
+     */
     async login(credentials: LoginDto): Promise<void> {
       const user = await firstValueFrom(
-        http.post<UserDto>('/api/auth/login', credentials),
+        http
+          .post<SuccessEnvelope<UserDto>>('/api/auth/login', credentials)
+          .pipe(map((response) => response.data)),
       );
       patchState(store, { user });
     },
 
     async logout(): Promise<void> {
-      await firstValueFrom(http.post<void>('/api/auth/logout', null));
+      await firstValueFrom(
+        http.post<SuccessEnvelope<null>>('/api/auth/logout', null),
+      );
       patchState(store, { user: null });
     },
 

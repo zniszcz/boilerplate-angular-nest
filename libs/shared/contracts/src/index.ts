@@ -3,6 +3,8 @@
 import type { components } from './lib/api.generated';
 
 export type { paths } from './lib/api.generated';
+// Written by hand: the code catalog and the envelope.
+export * from './lib/codes';
 
 type Schemas = components['schemas'];
 export type HelloDto = Schemas['HelloDto'];

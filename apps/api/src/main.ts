@@ -1,13 +1,15 @@
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-import { I18nValidationExceptionFilter, I18nValidationPipe } from 'nestjs-i18n';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
 import { logLevelsFromEnv } from './config/log-level';
 import { mediaDirFromEnv } from './config/media-dir';
+import { validationException } from '@boilerplate/api-responses';
+import { EnvelopeExceptionFilter } from './responses/envelope-exception.filter';
+import { EnvelopeInterceptor } from './responses/envelope.interceptor';
 import { createOpenApiDocument } from './swagger';
 
 async function bootstrap() {
@@ -17,14 +19,19 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   app.use(cookieParser());
-  // Rejects bodies with fields the DTO does not declare. Messages are
-  // translated to the language of the request.
+  // Rejects bodies with fields the DTO does not declare. Invalid fields
+  // become VALIDATION_ERROR details.
   app.useGlobalPipes(
-    new I18nValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: validationException,
+    }),
   );
-  app.useGlobalFilters(
-    new I18nValidationExceptionFilter({ detailedErrors: false }),
-  );
+  // Every response the web app sees has an envelope. See
+  // docs/adr/0012-response-envelope.md.
+  app.useGlobalInterceptors(new EnvelopeInterceptor(app.get(Reflector)));
+  app.useGlobalFilters(new EnvelopeExceptionFilter());
 
   // Local and test environments only, never on production.
   const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
