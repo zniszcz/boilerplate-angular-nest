@@ -2,7 +2,9 @@
 
 An overview in the shape of [arc42](https://arc42.org), with only the
 sections that have content so far. Diagrams follow the
-[C4 model](https://c4model.com) and are Mermaid, so GitHub shows them.
+[C4 model](https://c4model.com) and are Mermaid, so GitHub shows them. They
+are flowcharts in the C4 colours, not Mermaid's experimental C4 syntax, whose
+layout changes between Mermaid versions and tangles the arrows.
 
 How these documents divide the work:
 
@@ -30,19 +32,24 @@ Quality goals, in order:
 
 ## 3. Context
 
+### Context diagram (C4 level 1)
+
 ```mermaid
-C4Context
-    title System context
-    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="1")
-    Person(user, "User", "Browser, usually a phone")
-    System_Ext(cloudflare, "Cloudflare", "DNS, TLS, proxy, Access")
-    System(app, "Application", "Web app and API from this template")
-    System_Ext(smtp, "Gmail SMTP", "E-mails, planned")
-    System_Ext(github, "GitHub", "Code, CI, image registry GHCR")
-    Rel(user, cloudflare, "HTTPS")
-    Rel(cloudflare, app, "HTTPS, the only way in")
-    Rel(app, smtp, "SMTP")
-    Rel(github, app, "Images")
+flowchart TB
+    user["<b>User</b><br/><i>Person</i><br/>Browser, usually a phone"]:::person
+    cloudflare["<b>Cloudflare</b><br/><i>External system</i><br/>DNS, TLS, proxy, Access"]:::external
+    app["<b>Application</b><br/><i>Software system</i><br/>Web app and API from this template"]:::system
+    smtp["<b>Gmail SMTP</b><br/><i>External system</i><br/>E-mails, planned"]:::external
+    github["<b>GitHub</b><br/><i>External system</i><br/>Code, CI, image registry GHCR"]:::external
+    user -- HTTPS --> cloudflare
+    cloudflare -- "HTTPS, the only way in" --> app
+    app -- SMTP --> smtp
+    github -- Images --> app
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef system fill:#1168bd,stroke:#0b4884,color:#fff
+    classDef external fill:#8a8a8a,stroke:#6b6b6b,color:#fff
+    classDef container fill:#438dd5,stroke:#2e6295,color:#fff
+    classDef boundary fill:none,stroke:#888,stroke-dasharray:5 5
 ```
 
 ## 4. Solution strategy
@@ -59,26 +66,32 @@ C4Context
 
 ## 5. Building blocks
 
+### Container diagram (C4 level 2)
+
 ```mermaid
-C4Container
-    title Containers
-    UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
-    Person(user, "User", "Browser")
-    System_Boundary(cluster, "k3s cluster") {
-        Container(ingress, "Ingress", "Traefik", "/api to API, rest to web")
-        Container(web, "Web", "nginx", "Angular SPA, Storybook")
-        Container(api, "API", "NestJS", "REST under /api")
-        Container(cleanup, "Cleanup", "CronJob", "API image, daily")
-        ContainerDb(media, "Media", "volume", "/app/media")
-        ContainerDb(db, "PostgreSQL", "CloudNativePG", "Users, sessions")
-        ContainerDb(valkey, "Valkey", "Redis compatible", "Not used yet")
-    }
-    Rel(user, ingress, "HTTPS through Cloudflare")
-    Rel(ingress, web, "HTTP")
-    Rel(ingress, api, "HTTP, /api")
-    Rel(api, db, "SQL")
-    Rel(api, media, "files")
-    Rel(cleanup, db, "SQL")
+flowchart TB
+    user["<b>User</b><br/><i>Person</i><br/>Browser"]:::person
+    subgraph cluster["k3s cluster"]
+        ingress["<b>Ingress</b><br/><i>Traefik</i><br/>/api to API, the rest to web"]:::container
+        web["<b>Web</b><br/><i>nginx</i><br/>Angular SPA, Storybook"]:::container
+        api["<b>API</b><br/><i>NestJS</i><br/>REST under /api"]:::container
+        cleanup["<b>Cleanup</b><br/><i>CronJob</i><br/>API image, daily"]:::container
+        db[("<b>PostgreSQL</b><br/><i>CloudNativePG</i><br/>Users, sessions")]:::container
+        media[("<b>Media</b><br/><i>Volume</i><br/>/app/media")]:::container
+        valkey[("<b>Valkey</b><br/><i>Redis compatible</i><br/>Not used yet")]:::container
+    end
+    user -- "HTTPS through Cloudflare" --> ingress
+    ingress -- HTTP --> web
+    ingress -- "HTTP, /api" --> api
+    api -- SQL --> db
+    api -- Files --> media
+    cleanup -- SQL --> db
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef system fill:#1168bd,stroke:#0b4884,color:#fff
+    classDef external fill:#8a8a8a,stroke:#6b6b6b,color:#fff
+    classDef container fill:#438dd5,stroke:#2e6295,color:#fff
+    classDef boundary fill:none,stroke:#888,stroke-dasharray:5 5
+    class cluster boundary
 ```
 
 ### Code
