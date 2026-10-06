@@ -1,0 +1,43 @@
+# A pull request that closes a `bug` issue must change a test: the fix starts
+# with a test that reproduces the bug. See docs/adr/0021-testing-strategy.md.
+name: Bug fix has a test
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          bugs=$(gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences \
+            --jq '[.closingIssuesReferences[].number] | join(" ")')
+          closes_bug=false
+          for issue in $bugs; do
+            if gh issue view "$issue" --repo "$REPO" --json labels \
+              --jq '.labels[].name' | grep -qx bug; then
+              closes_bug=true
+            fi
+          done
+          if [ "$closes_bug" = false ]; then
+            echo "Closes no bug issue, nothing to check."
+            exit 0
+          fi
+          if gh pr diff "$PR" --repo "$REPO" --name-only \
+            | grep -qE '\.(spec\.ts|feature)$'; then
+            echo "The fix changes a test."
+          else
+            echo "::error::This pull request closes a bug issue but changes no test (*.spec.ts or *.feature). Add a test that reproduces the bug."
+            exit 1
+          fi

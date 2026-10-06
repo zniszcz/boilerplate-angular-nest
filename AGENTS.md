@@ -14,8 +14,29 @@ system fits together, with links to every concept and README:
 ## Before a commit
 
 Run and fix: `pnpm lint`, `pnpm build`, `pnpm architecture`, `pnpm versions`,
-`pnpm format:check`, and
+`pnpm format:check`, `pnpm test`, and
 `pnpm contracts:check` after any change to a DTO or a route.
+Before a push, also `pnpm mutate` (the `pre-push` hook runs it).
+
+## Tests
+
+Why: [ADR 0021](docs/adr/0021-testing-strategy.md). How they run:
+[Testing](docs/concepts/testing.md).
+
+- Write the test first, from the requirement, and see it fail. Never derive
+  the expected value from the implementation.
+- Test behaviour over the API with a real database. Unit tests only for
+  domain rules and frontend logic. No tests for controllers, modules,
+  getters, presentational components, no snapshots.
+- Never mock the database or replace PostgreSQL with another engine.
+- A bug fix starts with a test that reproduces the bug and fails. Then fix
+  the code. CI blocks a pull request that closes a `bug` issue without
+  changing any test.
+- A flaky test is a failing test. Fix the cause, never add waits or retries.
+- Never weaken or delete an assertion to make a test pass.
+- A surviving mutant in `pnpm mutate` means a missing test or dead code.
+  Add the test or remove the code; do not lower the threshold.
+  See [ADR 0022](docs/adr/0022-mutation-testing.md).
 
 ## Versions
 

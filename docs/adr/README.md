@@ -36,5 +36,7 @@ Generated from the files here by `pnpm docs:generate`.
 | [0018](0018-loading-states-and-motion.md)           | Loading states and motion as a system                               |
 | [0019](0019-ci-pipeline.md)                         | CI checks everything, builds only changed images                    |
 | [0020](0020-documentation-layout.md)                | Documentation in the shape of arc42, next to the code               |
+| [0021](0021-testing-strategy.md)                    | Tests by risk, mostly over the API on a real database               |
+| [0022](0022-mutation-testing.md)                    | Mutation testing of domain and application with Stryker             |
 
 <!-- /generated:adrs -->
