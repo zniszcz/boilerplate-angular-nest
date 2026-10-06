@@ -19,8 +19,7 @@ Code, Devin, Codex, Gemini CLI and Pi can all use them. Why and the rules:
 4. Commit. The pre-commit hook links the skill for Claude Code
    (`.claude/skills/<name>`) and adds it to the list below.
 
-Removing a skill: delete its folder and its link in `.claude/skills/`.
-`pnpm docs:check` fails while either is left without the other.
+Removing a skill: delete its folder and commit. The hook removes its link.
 
 ## Skills
 

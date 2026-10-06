@@ -1,6 +1,8 @@
 // Links every skill in .agents/skills to .claude/skills, the only place
-// Claude Code reads skills from, so all agents share one copy. Run by the
-// pre-commit hook; pnpm docs:check fails on a missing or orphaned link.
+// Claude Code reads skills from, so all agents share one copy, and removes
+// links whose skill is gone. It fixes only what has one right answer and
+// prints each fix. Run by the pre-commit hook; pnpm docs:check, run by CI,
+// only reports.
 // See docs/adr/0028-agent-skills.md.
 //   node scripts/skills.mjs link
 import {
@@ -8,6 +10,7 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  rmSync,
   symlinkSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -35,6 +38,17 @@ for (const name of skills) {
   mkdirSync(LINKS, { recursive: true });
   symlinkSync(join('../../.agents/skills', name), link);
   console.log(`Linked .claude/skills/${name}`);
+}
+
+// A link to a removed skill. A real folder here is left for a person to
+// move into .agents/skills, and pnpm docs:check reports it.
+const links = existsSync(LINKS) ? readdirSync(LINKS) : [];
+for (const name of links) {
+  const link = join(LINKS, name);
+  if (isLink(link) && !existsSync(link)) {
+    rmSync(link);
+    console.log(`Removed .claude/skills/${name}, its skill is gone`);
+  }
 }
 
 function isLink(path) {

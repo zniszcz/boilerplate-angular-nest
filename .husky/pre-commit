@@ -9,9 +9,10 @@ if git diff --cached --name-only | grep -q '^package\.json$'; then
   pnpm versions
 fi
 
-# Every agent skill gets its link for Claude Code (docs/adr/0028-agent-skills.md).
-if pnpm --silent skills:link | grep -q '^Linked'; then
-  git add .claude/skills
+# Every agent skill gets its link for Claude Code, and links to removed
+# skills go (docs/adr/0028-agent-skills.md).
+if pnpm --silent skills:link | grep -qE '^(Linked|Removed)'; then
+  git add -A .claude/skills
 fi
 
 # Generated lists in the docs (projects, concepts, ADR index, skills) follow

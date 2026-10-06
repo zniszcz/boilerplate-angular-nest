@@ -20,8 +20,13 @@ outside Claude Code, Devin first.
 - **Location: `.agents/skills/<name>/`**, which Devin, Codex, Gemini CLI and
   Pi read. Claude Code reads only `.claude/skills/`, so each skill has a
   symlink `.claude/skills/<name>` to its folder. `pnpm skills:link` creates
-  missing links, the pre-commit hook runs it, and `pnpm docs:check` fails on
-  a skill without a link or a link without a skill.
+  missing links and removes links to removed skills, the pre-commit hook
+  runs it, and `pnpm docs:check` fails on a skill without a link or a link
+  without a skill.
+- **Tools fix only what has one right answer**, such as a link or a
+  generated list, and print each fix, so an agent sees its own mistake.
+  Anything that needs a decision, such as a missing kind or contract, is
+  only reported. CI only reports.
 - **Paths from the repository root.** A skill runs its scripts as
   `node .agents/skills/<name>/scripts/<file>`, from the root of the
   repository or worktree, so every agent finds the same file.
