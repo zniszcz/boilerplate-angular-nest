@@ -198,7 +198,7 @@ Mechanisms that span several libraries, generated from `docs/concepts`:
 - [API contracts](concepts/api-contracts.md): How the backend and the web app agree on every request and response.
 - [Authentication](concepts/authentication.md): How login, refresh and logout work across three libraries.
 - [Frontend](concepts/frontend.md): How the web app is put together, from spartan/ui atoms to pages, and how it loads and moves.
-- [Testing](concepts/testing.md): How the backend tests run against a real database.
+- [Testing](concepts/testing.md): How the tests run: backend tests against a real database, frontend logic in Angular's test environment.
 
 <!-- /generated:concepts -->
 
