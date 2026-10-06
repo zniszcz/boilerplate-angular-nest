@@ -67,6 +67,11 @@ export default defineConfig(
                 'type:contracts',
               ],
             },
+            // End-to-end tests drive the app from outside, like a user.
+            {
+              sourceTag: 'type:e2e',
+              onlyDependOnLibsWithTags: ['type:contracts'],
+            },
             // Presentational only: data in through inputs, events out.
             {
               sourceTag: 'type:ui',

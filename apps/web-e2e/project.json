@@ -1,0 +1,18 @@
+{
+  "name": "web-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/web-e2e",
+  "tags": ["scope:web", "type:e2e"],
+  "implicitDependencies": ["api", "web"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "dependsOn": [{ "projects": ["api", "web"], "target": "build" }],
+      "options": {
+        "cwd": "apps/web-e2e",
+        "command": "bddgen && playwright test"
+      }
+    }
+  }
+}
