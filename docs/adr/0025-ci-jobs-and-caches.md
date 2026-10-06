@@ -36,6 +36,10 @@ and every step waited for the one before it.
   job with its result and key number, such as the mutation score or the
   scenarios passed, and lists details only for what failed. Test failures
   show as annotations from Vitest.
+- **Publishing is visible**: on `main` the image jobs are named "Publish
+  image to GHCR" with a step per stage (build, test, log in, push), and a
+  Publish summary says which images were pushed with which tags, or why
+  none were, also on branches.
 - **Reports as artifacts on failure**: the Stryker HTML report and the E2E
   report with traces.
 
