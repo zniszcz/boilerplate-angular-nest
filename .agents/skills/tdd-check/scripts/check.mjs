@@ -117,23 +117,55 @@ function vitest(file, name) {
   };
 }
 
-function playwright(name) {
-  // Our own report file, so the result does not depend on where the
-  // Playwright config writes its reports.
-  const report = join(LOG_DIR, 'playwright.json');
-  writeFileSync(report, '');
-  const args = ['--silent', 'e2e', '--', '--reporter=json'];
+/** The JSON report file the project's Playwright config writes, if any. */
+function jsonReport(project) {
+  const config = join(project.root, 'playwright.config.ts');
+  if (!existsSync(config)) {
+    return undefined;
+  }
+  // Loaded in its own process: plugins such as playwright-bdd keep state in
+  // the environment, which must not reach the test run. Node strips the
+  // types itself, so the config stays the only source of the path.
+  const reporters = JSON.parse(
+    execFileSync(
+      'node',
+      [
+        '--no-warnings',
+        '--input-type=module',
+        '-e',
+        "const c = (await import('./playwright.config.ts')).default; console.log(JSON.stringify(c.reporter ?? []))",
+      ],
+      { cwd: project.root, encoding: 'utf8' },
+    ),
+  );
+  const reporter = reporters.find(
+    (entry) => Array.isArray(entry) && entry[0] === 'json',
+  );
+  const file = reporter?.[1]?.outputFile;
+  return file ? join(project.root, file) : undefined;
+}
+
+async function playwright(file, name) {
+  const project = projectOf(file);
+  if (!project) {
+    return finish('bad-input', `No Nx project owns ${file}`);
+  }
+  const report = jsonReport(project);
+  if (!report) {
+    return finish(
+      'no-json-report',
+      `${relative(ROOT, project.root)}/playwright.config.ts has no json reporter with an outputFile`,
+    );
+  }
+  if (existsSync(report)) {
+    writeFileSync(report, '');
+  }
+  const args = ['nx', 'e2e', project.name, '--skip-nx-cache', '--'];
   if (name) {
     args.push('--grep', name);
   }
-  const { out } = run('pnpm', args, {
-    env: {
-      ...process.env,
-      PLAYWRIGHT_JSON_OUTPUT_FILE: report,
-      PLAYWRIGHT_JSON_OUTPUT_NAME: report,
-    },
-  });
-  const text = readFileSync(report, 'utf8');
+  const { out } = run('pnpm', args);
+  const text = existsSync(report) ? readFileSync(report, 'utf8') : '';
   if (!text) {
     // Playwright did not run: bddgen failed, for example on steps that are
     // not defined yet, or the build broke.
@@ -177,7 +209,7 @@ if (!existsSync(join(ROOT, file))) {
   finish('bad-input', `${file} does not exist`, { file });
 }
 const result = file.endsWith('.feature')
-  ? playwright(name)
+  ? await playwright(file, name)
   : file.endsWith('.spec.ts')
     ? vitest(file, name)
     : finish('bad-input', 'Only .spec.ts and .feature files are supported', {
