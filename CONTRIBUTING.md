@@ -51,6 +51,8 @@ Each feature gets its own git worktree, branch, database and ports, so
 several features run side by side with `main` without touching each other.
 The apps run on your machine with Nx, not in Docker, to save resources;
 PostgreSQL, Valkey and the admin panels are shared with the main checkout.
+`pnpm instance up <branch>` does it; see
+[Isolated instance of a branch](docs/development/setup.md#instances).
 
 ### 2. Write the spec
 
@@ -135,5 +137,6 @@ CI green until it is merged.
 
 ### 11–12. Merge and clean up
 
-After the squash merge, stop the instance and remove its worktree, database
-and branch.
+After the squash merge, `pnpm instance sweep` stops the instance and
+removes its worktree, database and branch. `pnpm instance up` sweeps too,
+so a forgotten instance goes when the next one starts.

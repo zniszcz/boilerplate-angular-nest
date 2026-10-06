@@ -18,6 +18,8 @@
     ".nx",
     ".angular",
     "docs",
+    ".agents",
+    ".claude",
     "apps/web",
     "apps/storybook",
     "libs/web"

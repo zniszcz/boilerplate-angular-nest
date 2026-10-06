@@ -45,5 +45,6 @@ Generated from the files here by `pnpm docs:generate`.
 | [0027](0027-squash-merges.md)                       | One squashed commit per pull request                                |
 | [0028](0028-agent-skills.md)                        | Agent skills in the open format, steps and aggregators              |
 | [0029](0029-feature-workflow.md)                    | One recommended workflow for business features                      |
+| [0030](0030-isolated-instances.md)                  | Isolated instances of the apps per branch                           |
 
 <!-- /generated:adrs -->
