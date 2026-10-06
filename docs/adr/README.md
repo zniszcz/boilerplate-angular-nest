@@ -46,5 +46,6 @@ Generated from the files here by `pnpm docs:generate`.
 | [0028](0028-agent-skills.md)                        | Agent skills in the open format, steps and aggregators              |
 | [0029](0029-feature-workflow.md)                    | One recommended workflow for business features                      |
 | [0030](0030-isolated-instances.md)                  | Isolated instances of the apps per branch                           |
+| [0031](0031-storybook-in-instances.md)              | Storybook runs in every isolated instance                           |
 
 <!-- /generated:adrs -->

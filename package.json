@@ -21,7 +21,7 @@
   },
   "scripts": {
     "dev": "nx run-many -t serve --projects=api,web",
-    "storybook": "nx run storybook:storybook",
+    "storybook": "nx serve storybook",
     "build": "nx run-many -t build",
     "contracts:generate": "nx build api && node dist/apps/api/openapi.js tmp/openapi.json && openapi-typescript tmp/openapi.json -o libs/shared/contracts/src/lib/api.generated.ts && prettier --write libs/shared/contracts/src/lib/api.generated.ts",
     "contracts:check": "pnpm contracts:generate && git diff --exit-code libs/shared/contracts",
