@@ -30,7 +30,7 @@ jobs:
     uses: ./.github/workflows/checks.yml
 
   changes:
-    name: Find changed apps
+    name: Find apps to publish (main only)
     needs: checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
@@ -61,7 +61,8 @@ jobs:
         run: echo "apps=$(node scripts/changed-images.mjs)" >> "$GITHUB_OUTPUT"
 
   images:
-    name: Image ${{ matrix.app }}
+    # Without a matrix value in the name, GitHub appends it: (api), (web).
+    name: Publish image to GHCR
     needs: changes
     if: needs.changes.outputs.apps != '[]'
     runs-on: ubuntu-24.04
@@ -75,8 +76,9 @@ jobs:
       IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.app }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -89,16 +91,50 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       # The image that passes is the one that gets pushed, not a rebuild.
-      - name: Test
+      - name: Test the image as the cluster runs it
         run: scripts/test-prod-images.sh ${{ matrix.app }}
         env:
           BUILD: 0
           API_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
           WEB_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push
+      - name: Push to GHCR
         run: docker push --all-tags "$IMAGE"
+
+  # One line about images on the run's page, also on branches, where none
+  # are published.
+  publish-summary:
+    name: Publish summary
+    needs: [changes, images]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Write the summary
+        env:
+          REF: ${{ github.ref }}
+          APPS: ${{ needs.changes.outputs.apps }}
+          RESULT: ${{ needs.images.result }}
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo '## Images'
+            echo
+            if [ "$REF" != refs/heads/main ]; then
+              echo '⚪ Not published: images are published only from `main`.'
+            elif [ -z "$APPS" ] || [ "$APPS" = '[]' ]; then
+              echo '⚪ Not published: no app changed since the last successful run.'
+            else
+              icon=$([ "$RESULT" = success ] && echo ✅ || echo ❌)
+              echo '| | Image | Tags |'
+              echo '| --- | --- | --- |'
+              for app in $(echo "$APPS" | tr -d '[]"' | tr ',' ' '); do
+                echo "| $icon | \`$IMAGE/$app\` | \`latest\`, \`$SHA\` |"
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
