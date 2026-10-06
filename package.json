@@ -33,6 +33,7 @@
     "versions": "syncpack lint",
     "docs:generate": "node scripts/docs.mjs generate",
     "docs:check": "node scripts/docs.mjs check",
+    "skills:link": "node scripts/skills.mjs link",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
