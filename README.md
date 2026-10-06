@@ -13,7 +13,9 @@ First copy the one settings file, which every way of running it reads:
 cp .env.example .env
 ```
 
-Everything in Docker, nothing else to install:
+Everything in Docker, nothing else to install. On macOS and Windows, first
+turn on host networking in Docker Desktop
+([how](docs/development/setup.md#option-a)):
 
 ```sh
 docker compose --profile apps watch

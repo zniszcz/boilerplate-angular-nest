@@ -56,9 +56,12 @@ and keeps them in sync with your files.
 - Each app has its own `Dockerfile`. The `dev` stage runs `nx serve`.
 - Nx turns off its daemon inside Docker, but `nx serve api` needs it to
   restart on change, so the `dev` stage sets `NX_DAEMON=true`.
-- The containers read the root `.env`, like the other options;
-  `compose.yaml` overrides only what differs inside a container: the
-  database and Valkey host names and the media path.
+- The containers read the root `.env`, like the other options, and
+  nothing overrides it. The API and web containers use the host's network,
+  so `localhost` in `.env` reaches the databases inside them too.
+- **macOS and Windows:** turn on host networking in Docker Desktop, under
+  Settings → Resources → Network → Enable host networking (Docker Desktop
+  4.34 or newer). Linux needs nothing.
 - Stop with `Ctrl+C`, then `docker compose --profile apps down`.
 
 <a id="option-b"></a>
