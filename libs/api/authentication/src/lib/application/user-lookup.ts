@@ -16,4 +16,6 @@ export abstract class UserLookup {
     password: string,
   ): Promise<Account | null>;
   abstract findById(id: string): Promise<Account | null>;
+  /** Tells the users domain that the account has just logged in. */
+  abstract recordLogin(id: string, now: Date): Promise<void>;
 }

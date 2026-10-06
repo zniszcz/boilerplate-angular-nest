@@ -13,6 +13,7 @@ import type { Request, Response } from 'express';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
+  clearAuthCookies,
   Public,
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
@@ -87,7 +88,7 @@ export class LoginController {
       ? await this.authentication.refresh(presented)
       : ({ status: 'refused' } as const);
     if (result.status === 'refused') {
-      clearCookies(response);
+      clearAuthCookies(response);
       throw new AppException(HttpStatus.UNAUTHORIZED, 'AUTH_REFRESH_REJECTED');
     }
     await this.setCookies(response, result.account, result.refreshToken);
@@ -105,7 +106,7 @@ export class LoginController {
     if (presented) {
       await this.authentication.logout(presented);
     }
-    clearCookies(response);
+    clearAuthCookies(response);
   }
 
   private async setCookies(
@@ -140,16 +141,4 @@ function refreshCookie(request: Request): string | undefined {
   return (request.cookies as Record<string, string> | undefined)?.[
     REFRESH_TOKEN_COOKIE
   ];
-}
-
-// clearCookie needs the same options as cookie, apart from maxAge.
-function clearCookies(response: Response): void {
-  response.clearCookie(ACCESS_TOKEN_COOKIE, {
-    ...accessTokenCookieOptions(),
-    maxAge: undefined,
-  });
-  response.clearCookie(REFRESH_TOKEN_COOKIE, {
-    ...refreshTokenCookieOptions(),
-    maxAge: undefined,
-  });
 }

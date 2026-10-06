@@ -1,6 +1,5 @@
 /**
- * A permission code such as `users:read`: a resource and an action. A value
- * object, so two permissions with the same code are equal.
+ * A permission code such as `users:read`: a resource and an action.
  */
 export class Permission {
   private constructor(readonly code: string) {}
@@ -10,9 +9,5 @@ export class Permission {
       throw new Error(`Invalid permission code: ${code}`);
     }
     return new Permission(code);
-  }
-
-  equals(other: Permission): boolean {
-    return this.code === other.code;
   }
 }

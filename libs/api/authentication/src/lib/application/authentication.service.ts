@@ -31,7 +31,9 @@ export class AuthenticationService {
     if (!account) {
       return { status: 'refused' };
     }
-    await this.sessions.deleteExpired(account.id, new Date());
+    const now = new Date();
+    await this.users.recordLogin(account.id, now);
+    await this.sessions.deleteExpired(account.id, now);
     const { token, presented } = this.codec.issue();
     await this.sessions.save(
       Session.start(this.codec.newFamilyId(), account.id, token),

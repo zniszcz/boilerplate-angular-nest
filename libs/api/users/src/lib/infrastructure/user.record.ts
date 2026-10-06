@@ -29,6 +29,10 @@ export class UserRecord {
   })
   permissions!: PermissionRecord[];
 
+  /** Null until the user logs in for the first time. */
+  @Column({ name: 'first_login_at', type: 'timestamptz', nullable: true })
+  firstLoginAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

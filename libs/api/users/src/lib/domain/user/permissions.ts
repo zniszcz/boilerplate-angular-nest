@@ -4,8 +4,10 @@
  */
 export const PERMISSIONS = {
   usersRead: 'users:read',
+  usersCreate: 'users:create',
 } as const;
 
 export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   [PERMISSIONS.usersRead]: 'List all users',
+  [PERMISSIONS.usersCreate]: 'Add users',
 };

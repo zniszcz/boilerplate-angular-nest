@@ -22,4 +22,8 @@ export class UsersUserLookup extends UserLookup {
   findById(id: string): Promise<Account | null> {
     return this.queries.findById(id);
   }
+
+  recordLogin(id: string, now: Date): Promise<void> {
+    return this.credentials.recordLogin(id, now);
+  }
 }

@@ -4,4 +4,6 @@ export class UserDto {
   email!: string;
   /** Permission codes, for example `users:read`. */
   permissions!: string[];
+  /** ISO date of the first login; null for an account never used. */
+  firstLoginAt!: string | null;
 }

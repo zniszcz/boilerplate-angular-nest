@@ -1,3 +1,4 @@
+export * from './user/email';
 export * from './user/permission';
 export * from './user/permissions';
 export * from './user/user';
