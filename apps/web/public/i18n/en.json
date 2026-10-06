@@ -56,5 +56,10 @@
       "password": "Current password",
       "submit": "Delete account"
     }
+  },
+  "nav": {
+    "home": "Home",
+    "users": "Users",
+    "account": "Account"
   }
 }

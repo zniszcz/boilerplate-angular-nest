@@ -3,24 +3,18 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { errorCode, type ErrorEnvelope } from '@boilerplate/contracts';
-import {
-  CenteredCard,
-  LoginForm,
-  type LoginFormValue,
-} from '@boilerplate/web-ui';
+import { type LoginFormValue, LoginView } from '@boilerplate/web-ui';
 import { AuthStore } from '../auth.store';
 
 @Component({
   selector: 'app-login-page',
-  imports: [CenteredCard, LoginForm],
+  imports: [LoginView],
   template: `
-    <app-centered-card>
-      <app-login-form
-        [pending]="pending()"
-        [error]="error()"
-        (submitted)="login($event)"
-      />
-    </app-centered-card>
+    <app-login-view
+      [pending]="pending()"
+      [error]="error()"
+      (submitted)="login($event)"
+    />
   `,
 })
 export class LoginPage {
