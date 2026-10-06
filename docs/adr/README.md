@@ -40,5 +40,6 @@ Generated from the files here by `pnpm docs:generate`.
 | [0022](0022-mutation-testing.md)                    | Mutation testing of domain and application with Stryker             |
 | [0023](0023-end-to-end-tests.md)                    | End-to-end scenarios in Gherkin on the built apps                   |
 | [0024](0024-ci-on-every-branch.md)                  | CI on every push to any branch, trunk-based                         |
+| [0025](0025-ci-jobs-and-caches.md)                  | CI in five parallel jobs with caches and a summary                  |
 
 <!-- /generated:adrs -->

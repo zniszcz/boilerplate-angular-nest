@@ -71,7 +71,9 @@ sequenceDiagram
 - `steps/fixtures.ts` gives every scenario its own users (`accounts`), its
   own client address and an admin API client to set up what a scenario
   takes as given.
-- Reports go to `reports/e2e`, traces of failed retries to `tmp/e2e-results`.
+- Reports go to `reports/e2e` (HTML in `html/`, `results.json` for the CI
+  summary), traces of failed retries to `tmp/e2e-results`. In CI both are
+  uploaded as the `e2e-report` artifact when a scenario fails.
 
 ## Mutation testing in CI
 

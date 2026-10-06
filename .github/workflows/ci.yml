@@ -26,51 +26,172 @@ permissions:
 env:
   NX_NO_CLOUD: true
 
+# Five jobs side by side, one per kind of check, so the run's graph shows at a
+# glance which one failed. Each sets up the workspace the same way
+# (.github/actions/setup) and keeps its own Nx cache.
 jobs:
-  verify:
-    name: Verify the whole repository
+  static:
+    name: Static checks
     if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm versions
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm architecture
-      - run: pnpm build
+          job: static
+      - name: Exact versions
+        run: pnpm versions
+      - name: Formatting
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: DDD layers and cycles
+        run: pnpm architecture
+      - name: API types match the backend
+        run: pnpm contracts:check
+      - name: Generated docs lists
+        run: pnpm docs:check
+      - name: Save the Nx cache
+        if: always() && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/cache
+          key: nx-static-${{ github.ref_name }}-${{ github.sha }}
+
+  build:
+    name: Build and Storybook
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          job: build
+      - name: Build the apps
+        run: pnpm build
+      - name: Build Storybook
+        run: pnpm nx run storybook:build-storybook
+      - name: Save the Nx cache
+        if: always() && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/cache
+          key: nx-build-${{ github.ref_name }}-${{ github.sha }}
+
+  test:
+    name: Unit and API tests
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          job: test
       # API tests start PostgreSQL in Docker, which the runner has.
-      - run: pnpm test
+      - name: Unit and API tests
+        run: pnpm test
+      - name: Save the Nx cache
+        if: always() && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/cache
+          key: nx-test-${{ github.ref_name }}-${{ github.sha }}
+
+  mutation:
+    name: Mutation testing
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          job: mutation
       # Results of the last run, so only mutants in changed code run again:
       # this branch's latest, or main's on a new branch. Each branch saves
       # its own; the nightly full run refreshes main's. See
       # docs/adr/0022-mutation-testing.md.
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore earlier Stryker results
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/mutation/incremental.json
           key: mutation-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: mutation-
-      - run: pnpm mutate
-      - if: github.event_name == 'push'
+      - name: Stryker
+        run: pnpm mutate
+      - name: Summary
+        if: always()
+        run: node scripts/ci-summary.mjs mutation
+      - name: Save Stryker results
+        if: github.event_name == 'push'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/mutation/incremental.json
           key: mutation-${{ github.ref_name }}-${{ github.sha }}
-      # Scenarios from apps/web-e2e/features on the built apps, in Chromium.
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm e2e
-      - run: pnpm nx run storybook:build-storybook
-      - run: pnpm contracts:check
-      - run: pnpm docs:check
+      - name: Upload the HTML report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report
+          path: reports/mutation/index.html
+      - name: Save the Nx cache
+        if: always() && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/cache
+          key: nx-mutation-${{ github.ref_name }}-${{ github.sha }}
+
+  e2e:
+    name: End-to-end
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          job: e2e
+      # Browsers are cached per Playwright version; the system libraries
+      # they need still come from apt.
+      - name: Restore Chromium
+        id: browsers
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
+      - name: Save Chromium
+        if: steps.browsers.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: System libraries for Chromium
+        run: pnpm exec playwright install-deps chromium
+      # Scenarios from apps/web-e2e/features on the built apps.
+      - name: Scenarios
+        run: pnpm e2e
+      - name: Summary
+        if: always()
+        run: node scripts/ci-summary.mjs e2e
+      - name: Upload the report with traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-report
+          path: |
+            reports/e2e/html
+            tmp/e2e-results
+      - name: Save the Nx cache
+        if: always() && github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/cache
+          key: nx-e2e-${{ github.ref_name }}-${{ github.sha }}
 
   changes:
     name: Find changed apps
-    needs: verify
+    needs: [static, build, test, mutation, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
