@@ -1,6 +1,6 @@
 # Local development setup
 
-There are three ways to run the project locally. In all of them both apps
+There are three ways to run the project locally, and a fourth to run a branch beside it. In all of them both apps
 reload automatically when a file changes.
 
 | Option                               | Runs in Docker                     | Runs on your machine                     | You need                                    |
@@ -8,6 +8,7 @@ reload automatically when a file changes.
 | [A. Everything in Docker](#option-a) | databases, panels, `api` and `web` | nothing                                  | Docker                                      |
 | [B. Databases in Docker](#option-b)  | databases and panels               | `api` and `web`                          | Docker, [machine setup](#setup)             |
 | [C. No Docker](#option-c)            | nothing                            | `api`, `web`, your PostgreSQL and Valkey | PostgreSQL, Valkey, [machine setup](#setup) |
+| [Instance of a branch](#instances)   | databases and panels, shared       | `api` and `web` of the branch            | option B running in the main checkout       |
 
 Databases are PostgreSQL and Valkey (compatible with Redis). Panels are
 Adminer for PostgreSQL and RedisInsight for Valkey. The versions match the
@@ -91,6 +92,50 @@ REDIS_URL=redis://user:password@localhost:6379
 
 - `pnpm dev` works the same way as in option B.
 - `.env` is not committed, so your credentials stay on your machine.
+
+<a id="instances"></a>
+
+## Isolated instance of a branch
+
+Runs a branch next to the main checkout without touching it: its own git
+worktree, ports, database and Valkey database, on the databases and panels
+of option B. Needs option B's containers running in the main checkout and
+the [machine setup](#setup). Why it works like this:
+[ADR 0030](../adr/0030-isolated-instances.md).
+
+```sh
+pnpm instance up feat/orders     # create, or start again, and wait until ready
+pnpm instance list               # all instances, their addresses and state
+pnpm instance stop feat/orders   # stop its apps, keep the worktree and data
+pnpm instance down feat/orders   # remove it, unless work would be lost
+pnpm instance sweep              # remove those whose pull request is merged
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Running: up, on a free slot
+    Running --> Running: a port is taken, up moves to the next slot
+    Running --> Stopped: stop
+    Stopped --> Running: up
+    Running --> Removed: down, or sweep after the merge
+    Stopped --> Removed: down, or sweep after the merge
+    Removed --> [*]
+    note right of Removed
+        down refuses while there are uncommitted changes
+        or commits that no other branch or remote has
+    end note
+```
+
+- The worktree is `../<repository>--<branch>`. Work there as in any
+  checkout; its `.env` is a copy of the main one with the instance's values.
+- Slot N, from 1 to 3, has the ports from 41000 + 10·N: web +0, API +1,
+  Storybook +2, API debugger +3, in the order of the
+  `# per-instance-ports` block in `.env.example`. To add an app to the
+  block, add its port variable at the end of that block; to remove one,
+  delete its line. Existing instances keep their old `.env` until they are
+  created again.
+- The last line of every command is JSON for scripts and agents. The full
+  log, and each app's output, are in `tmp/instances/` of the main checkout.
 
 <a id="setup"></a>
 
