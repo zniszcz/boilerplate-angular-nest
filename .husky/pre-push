@@ -1,0 +1,8 @@
+# Mutation testing before a push, not a commit, so commits stay instant.
+# Incremental: only mutants in changed code run. Needs Docker.
+# See docs/adr/0022-mutation-testing.md.
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "mutate: skipped, pnpm not found. Run 'nvm use' and 'corepack enable'." >&2
+  exit 0
+fi
+pnpm mutate

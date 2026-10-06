@@ -40,6 +40,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm architecture
       - run: pnpm build
+      # API tests start PostgreSQL in Docker, which the runner has.
+      - run: pnpm test
+      - run: pnpm mutate
       - run: pnpm nx run storybook:build-storybook
       - run: pnpm contracts:check
       - run: pnpm docs:check

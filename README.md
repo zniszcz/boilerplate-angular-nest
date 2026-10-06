@@ -55,6 +55,8 @@ These need the [machine setup](docs/development/setup.md#machine-setup).
 | `pnpm storybook`                                        | Runs Storybook for the web UI at http://localhost:4400                            |
 | `pnpm build`                                            | Builds all apps                                                                   |
 | `pnpm lint`                                             | Runs ESLint in all projects                                                       |
+| `pnpm test`                                             | Runs unit and API tests; API tests need Docker                                    |
+| `pnpm mutate`                                           | Mutation testing of backend domain and application layers with Stryker            |
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                              |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version |
 | `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index                  |
