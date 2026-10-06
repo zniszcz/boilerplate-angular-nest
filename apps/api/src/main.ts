@@ -33,7 +33,9 @@ async function bootstrap() {
   // PORT in Docker and the cluster; API_PORT from the root .env, because a
   // PORT there would also move the web dev server, which Nx starts with it.
   const port = process.env.PORT || process.env.API_PORT || 3000;
-  await app.listen(port);
+  // Only this machine locally (API_HOST in .env); every interface in a
+  // container, where the cluster reaches it from outside.
+  await app.listen(port, process.env.API_HOST || '0.0.0.0');
   Logger.log(
     `Application is running on: http://localhost:${port}/${globalPrefix}`,
   );

@@ -9,6 +9,8 @@ const testDir = defineBddConfig({
 });
 
 const CI = !!process.env['CI'];
+// serve.mjs listens here; the port comes from the root .env.
+const WEB = `http://127.0.0.1:${process.env['E2E_WEB_PORT']}`;
 
 export default defineConfig({
   testDir,
@@ -25,14 +27,14 @@ export default defineConfig({
   ],
   outputDir: '../../tmp/e2e-results',
   use: {
-    baseURL: 'http://127.0.0.1:4300',
+    baseURL: WEB,
     trace: 'on-first-retry',
   },
   // Mobile first: the main run is on a phone.
   projects: [{ name: 'phone', use: { ...devices['Pixel 7'] } }],
   webServer: {
     command: 'node serve.mjs',
-    url: 'http://127.0.0.1:4300/api',
+    url: `${WEB}/api`,
     timeout: 120_000,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
   },

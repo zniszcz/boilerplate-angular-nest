@@ -1,6 +1,6 @@
 # 0030. Isolated instances of the apps per branch
 
-- Status: Accepted
+- Status: Accepted; Storybook in instances superseded by [0031](0031-storybook-in-instances.md)
 - Date: 2026-10-06
 
 ## Context

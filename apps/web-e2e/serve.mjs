@@ -1,6 +1,7 @@
-// Starts everything the E2E tests talk to, on ports that do not clash with
-// `pnpm dev`: PostgreSQL in a container, migrations and the seed, the built
-// API on 3100, and the built web app on 4300 with /api proxied to the API,
+// Starts everything the E2E tests talk to, on their own ports from the root
+// .env, so they clash neither with `pnpm dev` nor with another instance:
+// PostgreSQL in a container, migrations and the seed, the built API on
+// E2E_API_PORT, and the built web app on E2E_WEB_PORT with /api proxied,
 // as nginx does in the cluster. Run by Playwright's webServer; stops all on
 // SIGTERM. Needs `nx run-many -t build -p api web` first.
 import { spawn, execFileSync } from 'node:child_process';
@@ -13,8 +14,15 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const API_DIST = join(ROOT, 'dist/apps/api');
 const WEB_DIST = join(ROOT, 'dist/apps/web/browser');
-const API_PORT = 3100;
-const WEB_PORT = 4300;
+const port = (name) => {
+  const value = Number(process.env[name]);
+  if (!value) {
+    throw new Error(`${name} is not set; copy .env.example to .env`);
+  }
+  return value;
+};
+const API_PORT = port('E2E_API_PORT');
+const WEB_PORT = port('E2E_WEB_PORT');
 
 const db = await new PostgreSqlContainer('postgres:18.6')
   .withTmpFs({ '/var/lib/postgresql': 'rw' })

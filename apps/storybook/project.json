@@ -29,7 +29,7 @@
         "compodoc": false
       }
     },
-    "storybook": {
+    "serve": {
       "continuous": true,
       "executor": "nx:run-commands",
       "options": {

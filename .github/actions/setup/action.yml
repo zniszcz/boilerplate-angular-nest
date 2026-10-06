@@ -19,6 +19,10 @@ runs:
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
+    # The one settings file, as on a developer's machine; Nx loads it.
+    - name: Settings from .env.example
+      shell: bash
+      run: cp .env.example .env
     # This branch's latest, or main's on a new branch, like every cache here.
     - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
