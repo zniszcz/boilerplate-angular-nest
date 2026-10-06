@@ -1,7 +1,12 @@
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { signalStore, withProps } from '@ngrx/signals';
-import type { SuccessEnvelope, UserDto } from '@boilerplate/contracts';
+import { signalStore, withMethods, withProps } from '@ngrx/signals';
+import { firstValueFrom, map } from 'rxjs';
+import type {
+  CreatedUserDto,
+  SuccessEnvelope,
+  UserDto,
+} from '@boilerplate/contracts';
 import { AuthStore } from '@boilerplate/web-auth';
 
 /**
@@ -21,4 +26,19 @@ export const UsersStore = signalStore(
       ),
     };
   }),
+  withMethods((store, http = inject(HttpClient)) => ({
+    /**
+     * Adds an account and reloads the list. Rejects with HttpErrorResponse
+     * when the API refuses; its `error` is the error envelope.
+     */
+    async create(email: string): Promise<CreatedUserDto> {
+      const created = await firstValueFrom(
+        http
+          .post<SuccessEnvelope<CreatedUserDto>>('/api/users', { email })
+          .pipe(map((response) => response.data)),
+      );
+      store.users.reload();
+      return created;
+    },
+  })),
 );

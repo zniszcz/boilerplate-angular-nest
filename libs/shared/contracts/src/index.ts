@@ -11,3 +11,6 @@ export type HelloDto = Schemas['HelloDto'];
 export type AccountDto = Schemas['AccountDto'];
 export type LoginDto = Schemas['LoginDto'];
 export type UserDto = Schemas['UserDto'];
+export type CreateUserDto = Schemas['CreateUserDto'];
+export type CreatedUserDto = Schemas['CreatedUserDto'];
+export type DeleteAccountDto = Schemas['DeleteAccountDto'];

@@ -1,11 +1,14 @@
 import { Component, input, output, type ResourceSnapshot } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { HlmBadge } from '@boilerplate/web-helm/badge';
 import { HlmButton } from '@boilerplate/web-helm/button';
 import { UserListSkeleton } from './user-list-skeleton';
 
 export interface UserListItem {
   id: string;
   email: string;
+  /** Null for an account that never logged in. */
+  firstLoginAt: string | null;
 }
 
 /**
@@ -15,7 +18,7 @@ export interface UserListItem {
  */
 @Component({
   selector: 'app-user-list',
-  imports: [TranslocoPipe, HlmButton, UserListSkeleton],
+  imports: [TranslocoPipe, HlmBadge, HlmButton, UserListSkeleton],
   template: `
     @switch (view()) {
       @case ('loading') {
@@ -48,8 +51,19 @@ export interface UserListItem {
           <h2 class="font-semibold">{{ 'users.title' | transloco }}</h2>
           <ul class="grid gap-1">
             @for (user of items(); track user.id) {
-              <li class="flex h-11 items-center border-b last:border-b-0">
-                {{ user.email }}
+              <li
+                class="flex min-h-11 items-center justify-between gap-2 border-b last:border-b-0"
+              >
+                <span class="truncate">{{ user.email }}</span>
+                @if (user.firstLoginAt) {
+                  <span hlmBadge variant="default">
+                    {{ 'users.active' | transloco }}
+                  </span>
+                } @else {
+                  <span hlmBadge variant="outline">
+                    {{ 'users.neverLoggedIn' | transloco }}
+                  </span>
+                }
               </li>
             } @empty {
               <li class="text-muted-foreground text-sm">

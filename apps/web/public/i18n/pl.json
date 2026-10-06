@@ -20,20 +20,41 @@
   },
   "errors": {
     "AUTH_INVALID_CREDENTIALS": "Nieprawidłowy email lub hasło",
-    "AUTH_TOO_MANY_ATTEMPTS": "Za dużo prób, spróbuj ponownie za {{ minutes }} min"
+    "AUTH_TOO_MANY_ATTEMPTS": "Za dużo prób, spróbuj ponownie za {{ minutes }} min",
+    "USERS_EMAIL_TAKEN": "Konto z tym adresem email już istnieje",
+    "USERS_WRONG_PASSWORD": "Hasło jest nieprawidłowe",
+    "USERS_LAST_ADMIN": "To ostatnie konto, które może dodawać użytkowników, więc nie można go usunąć"
   },
   "common": {
     "loading": "Ładowanie",
     "loadFailed": "Nie udało się pobrać danych",
-    "retry": "Spróbuj ponownie"
+    "retry": "Spróbuj ponownie",
+    "actionFailed": "Coś poszło nie tak, spróbuj ponownie"
   },
   "users": {
     "title": "Użytkownicy",
-    "empty": "Nie ma jeszcze użytkowników"
+    "empty": "Nie ma jeszcze użytkowników",
+    "active": "Aktywny",
+    "neverLoggedIn": "Jeszcze się nie zalogował",
+    "create": {
+      "title": "Dodaj użytkownika",
+      "email": "Email",
+      "submit": "Dodaj użytkownika",
+      "created": "Utworzono konto {{ email }}. Jego hasło:",
+      "passwordOnce": "Przekaż je użytkownikowi teraz. Nie zostanie pokazane ponownie."
+    }
   },
   "notFound": {
     "title": "Nie ma takiej strony",
     "text": "Ten adres nigdzie nie prowadzi. Mógł się zmienić albo nigdy nie istniał.",
     "home": "Przejdź na stronę główną"
+  },
+  "account": {
+    "delete": {
+      "title": "Usuń swoje konto",
+      "warning": "Tej operacji nie da się cofnąć. Podaj hasło, aby potwierdzić.",
+      "password": "Aktualne hasło",
+      "submit": "Usuń konto"
+    }
   }
 }
