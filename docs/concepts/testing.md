@@ -57,8 +57,8 @@ sequenceDiagram
     participant P as Playwright
     participant S as serve.mjs
     participant PG as PostgreSQL container
-    participant A as built API :3100
-    participant W as built web :4300
+    participant A as built API on E2E_API_PORT
+    participant W as built web on E2E_WEB_PORT
     P->>S: webServer, once per run
     S->>PG: start, migrate, seed the admin
     S->>A: node dist/apps/api/main.js
