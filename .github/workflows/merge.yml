@@ -1,8 +1,8 @@
-# Check the branch works when merged into main: on a pull request, the same checks as Check the branch alone
-# (checks.yml), on the branch merged with the current main. Branches pass on
-# their own and still break together, for example when one renames what
-# another starts to use; with several agents working at once that happens.
-# See docs/adr/0025-ci-jobs-and-caches.md.
+# "Check the branch works when merged into main": on a pull request, the same
+# checks as "Check the branch alone" (checks.yml), on the branch merged with
+# the current main. Branches pass on their own and still break together, for
+# example when one renames what another starts to use; with several agents
+# working at once that happens. See docs/adr/0025-ci-jobs-and-caches.md.
 name: Check the branch works when merged into main
 
 on:
