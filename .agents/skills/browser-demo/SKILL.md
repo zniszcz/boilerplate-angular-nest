@@ -16,8 +16,8 @@ Carries out step 6 of
 checks what automated tests miss: layout on a phone, texts in every
 language, how errors look.
 
-1. Get the address with `pnpm --silent instance list`; use the `web` of
-   this branch. If it is not running, stop: starting it is step 1 (the
+1. Get the addresses with `pnpm --silent instance list`; use the frontend
+   app of this branch from `apps`. If it is not running, stop: starting it is step 1 (the
    `instance-up` skill).
 2. Use the browser tool your agent has, for example Claude in Chrome or a
    Playwright MCP server. Open a new tab; do not reuse the user's tabs.

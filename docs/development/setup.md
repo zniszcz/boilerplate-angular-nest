@@ -134,13 +134,31 @@ stateDiagram-v2
 
 - The worktree is `../<repository>--<branch>`. Work there as in any
   checkout; its `.env` is a copy of the main one with the instance's values.
-- Slot N, from 1 to `INSTANCE_LIMIT` (3 by default), has the ports from 41000 + 10·N, after the main
-  checkout's 41000: web +0, API +1,
-  Storybook +2, API debugger +3, in the order of the
-  `# per-instance-ports` block in `.env.example`. To add an app to the
-  block, add its port variable at the end of that block; to remove one,
-  delete its line. Existing instances keep their old `.env` until they are
-  created again.
+- Slot N, from 1 to `INSTANCE_LIMIT` (3 by default), has the ports from
+  41000 + 10·N, after the main checkout's 41000, in the order of the
+  `# per-instance-ports` block in `.env.example`.
+- An instance runs the Nx projects in `INSTANCE_APPS` with `nx serve`, and
+  runs the targets in `INSTANCE_SETUP` once when it is created. Existing
+  instances keep their old `.env` until they are created again.
+
+### Adding an app to instances
+
+Every app takes its ports from `.env`, never from `project.json`, so the
+same file steers every way of running it. A new app follows the API or the
+web app:
+
+1. Add `<PROJECT>_PORT` at the end of the `# per-instance-ports` block in
+   `.env.example`, for example `ADMIN_PORT` for the project `admin`.
+2. Make its `serve` target listen there:
+   - a backend reads the variable in its code, as `apps/api/src/main.ts`
+     reads `API_PORT`;
+   - a frontend's `serve` target runs its dev server with
+     `--port=$<PROJECT>_PORT`, as `apps/web/project.json` does.
+3. Add the project to `INSTANCE_APPS`, and its one-time targets, such as
+   migrations, to `INSTANCE_SETUP`.
+
+To remove an app, undo the three steps.
+
 - The last line of every command is JSON for scripts and agents. The full
   log, and each app's output, are in `tmp/instances/` of the main checkout.
 
@@ -186,7 +204,6 @@ change it in `.env`, for example `POSTGRES_PORT=5442`.
 
 The ports between `# per-instance-ports` markers belong to one instance of
 the apps, in a block of ten: the main checkout has 41000 to 41003, an
-isolated instance in slot N the same offsets from 41000 + 10·N. The web
-dev server, Storybook and the API debugger take their defaults from
-`project.json`, because Nx options cannot read `.env`; keep those equal to
-`.env.example`. The API listens on `API_PORT`.
+isolated instance in slot N the same offsets from 41000 + 10·N. Every app
+takes its ports from `.env`: the `serve` targets of the web app, Storybook
+and the API debugger pass them on, and the API reads `API_PORT` itself.

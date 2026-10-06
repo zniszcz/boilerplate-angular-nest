@@ -31,6 +31,17 @@ const ENV = readEnv(join(MAIN, '.env'));
 const EXAMPLE = readEnv(join(MAIN, '.env.example'));
 const setting = (name) => Number(ENV[name] ?? EXAMPLE[name]);
 const LIMIT = setting('INSTANCE_LIMIT');
+const list = (name) =>
+  (ENV[name] ?? EXAMPLE[name] ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+// The Nx projects an instance runs with `nx serve`, and the Nx targets it
+// runs once when it is created, such as migrations.
+const APPS = list('INSTANCE_APPS');
+const SETUP = list('INSTANCE_SETUP');
+/** An app's port variable: `web` listens on WEB_PORT. */
+const portOf = (app) => `${app.toUpperCase().replace(/-/g, '_')}_PORT`;
 const BLOCK = setting('INSTANCE_PORT_BLOCK');
 const REGISTRY = join(gitCommonDir(), 'instances.json');
 const LOG_DIR = join(MAIN, 'tmp/instances');
@@ -216,10 +227,10 @@ function listening(port) {
   });
 }
 
-/** Waits for both apps; reports a taken port as soon as a log shows it. */
+/** Waits for every app; reports a taken port as soon as a log shows it. */
 async function waitReady(instance, apps) {
   // Listening on their ports is enough: the logs show anything worse.
-  const ports = [instance.ports.API_PORT, instance.ports.WEB_PORT];
+  const ports = APPS.map((app) => instance.ports[portOf(app)]);
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     for (const [name, app] of Object.entries(apps)) {
@@ -347,6 +358,16 @@ function branchExists(name) {
 }
 
 async function up(name) {
+  const missing = APPS.filter((app) => !portVariables().includes(portOf(app)));
+  if (APPS.length === 0 || missing.length > 0) {
+    return finish(
+      'bad-config',
+      APPS.length === 0
+        ? 'INSTANCE_APPS in .env.example names no app'
+        : `No ${missing.map(portOf).join(', ')} in the per-instance-ports block of .env.example`,
+      { apps: APPS, missing },
+    );
+  }
   const sweepResult = sweepInstances();
   const registry = readRegistry();
   let instance = registry.instances[name];
@@ -387,24 +408,19 @@ async function up(name) {
       cwd: instance.worktree,
     });
     createDatabase(instance.database);
-    run('pnpm', ['nx', 'run', 'api:migrate'], { cwd: instance.worktree });
-    run('pnpm', ['nx', 'run', 'api:seed'], { cwd: instance.worktree });
+    for (const target of SETUP) {
+      run('pnpm', ['nx', 'run', target], { cwd: instance.worktree });
+    }
   }
   stopApps(instance);
   for (;;) {
-    const apps = {
-      api: startApp(instance, 'api', [
-        'serve',
-        'api',
-        `--port=${instance.ports.API_DEBUG_PORT}`,
-      ]),
-      web: startApp(instance, 'web', [
-        'serve',
-        'web',
-        `--port=${instance.ports.WEB_PORT}`,
-      ]),
-    };
-    instance.pids = { api: apps.api.pid, web: apps.web.pid };
+    // Each app reads its ports from the instance's .env, like everywhere.
+    const apps = Object.fromEntries(
+      APPS.map((app) => [app, startApp(instance, app, ['serve', app])]),
+    );
+    instance.pids = Object.fromEntries(
+      Object.entries(apps).map(([app, started]) => [app, started.pid]),
+    );
     writeRegistry(registry);
     const result = await waitReady(instance, apps);
     if (result.ok) {
@@ -439,7 +455,7 @@ async function up(name) {
   }
   return finish(
     'ready',
-    `${name} runs at http://localhost:${instance.ports.WEB_PORT}`,
+    `${name} runs: ${Object.values(addresses(instance)).join(', ')}`,
     {
       ...summary(instance),
       movedFromSlots: skipped,
@@ -448,13 +464,19 @@ async function up(name) {
   );
 }
 
+/** Where each app of the instance listens. */
+function addresses(instance) {
+  return Object.fromEntries(
+    APPS.map((app) => [app, `http://localhost:${instance.ports[portOf(app)]}`]),
+  );
+}
+
 function summary(instance) {
   return {
     branch: instance.branch,
     slot: instance.slot,
     worktree: instance.worktree,
-    web: `http://localhost:${instance.ports.WEB_PORT}`,
-    api: `http://localhost:${instance.ports.API_PORT}`,
+    apps: addresses(instance),
     database: instance.database,
     valkeyDb: instance.slot,
     running: Object.values(instance.pids ?? {}).some(alive),

@@ -27,13 +27,14 @@ How instances work: [setup](../../../docs/development/setup.md#instances).
 
 ## Contract
 
-| status          | meaning                                                           | do next                                                                                                                                |
-| --------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `ready`         | the apps answer; `data` has the addresses                         | tell the user `data.web`, `data.api` and `data.worktree`; mention `data.movedFromSlots` and `data.sweep.removed` if not empty          |
-| `limit-reached` | `data.limit` instances exist already; `data.instances` lists them | show the list and ask which to remove; then the user removes one, with the `instance-cleanup` skill or by hand, and you run this again |
-| `start-failed`  | an app exited; `data.logs` has its output                         | read the last 30 lines of that app's log, explain the cause to the user, do not change code to fix it unasked                          |
-| `start-timeout` | the apps did not start listening in time                          | same as `start-failed`                                                                                                                 |
-| `no-free-ports` | every free block has a taken port                                 | show `data.skipped` and ask the user what holds the ports (`ss -ltnp`)                                                                 |
+| status          | meaning                                                                          | do next                                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`         | the apps answer; `data` has the addresses                                        | tell the user each address in `data.apps` and `data.worktree`; mention `data.movedFromSlots` and `data.sweep.removed` if not empty     |
+| `limit-reached` | `data.limit` instances exist already; `data.instances` lists them                | show the list and ask which to remove; then the user removes one, with the `instance-cleanup` skill or by hand, and you run this again |
+| `start-failed`  | an app exited; `data.logs` has its output                                        | read the last 30 lines of that app's log, explain the cause to the user, do not change code to fix it unasked                          |
+| `start-timeout` | the apps did not start listening in time                                         | same as `start-failed`                                                                                                                 |
+| `no-free-ports` | every free block has a taken port                                                | show `data.skipped` and ask the user what holds the ports (`ss -ltnp`)                                                                 |
+| `bad-config`    | `INSTANCE_APPS` is empty or an app has no port in `.env.example`; `data.missing` | show the user; fixing the config is their decision ([how](../../../docs/development/setup.md#adding-an-app-to-instances))              |
 
 Any other status, no JSON line, or a non-zero exit code: stop, show the user
 the `log` path or the error line, and do not try to fix it.
