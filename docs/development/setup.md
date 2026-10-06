@@ -42,6 +42,7 @@ Needs only Docker with Docker Compose. Node.js and pnpm run inside the
 containers.
 
 ```sh
+cp .env.example .env   # once; see Configuration
 docker compose --profile apps watch
 ```
 
@@ -55,7 +56,9 @@ and keeps them in sync with your files.
 - Each app has its own `Dockerfile`. The `dev` stage runs `nx serve`.
 - Nx turns off its daemon inside Docker, but `nx serve api` needs it to
   restart on change, so the `dev` stage sets `NX_DAEMON=true`.
-- Environment variables come from `compose.yaml`.
+- The containers read the root `.env`, like the other options;
+  `compose.yaml` overrides only what differs inside a container: the
+  database and Valkey host names and the media path.
 - Stop with `Ctrl+C`, then `docker compose --profile apps down`.
 
 <a id="option-b"></a>
@@ -163,10 +166,11 @@ pnpm exec playwright install chromium   # the browser for pnpm e2e
 
 One file: `.env` in the repository root, copied from
 [`.env.example`](../../.env.example), which lists every variable with a
-local default and a comment. Docker Compose reads it for the published
-ports, and Nx loads it for every task, such as `nx serve api` or
-`nx run api:migrate`. It is not committed. Inside Docker (option A) the
-apps get their variables from `compose.yaml` instead.
+local default and a comment. Every way of running the project reads it:
+Docker Compose for its services and, in option A, for the containers of the
+apps; Nx for every task, such as `nx serve api` or `nx run api:migrate`. It
+is not committed. Create it before the first start; Compose refuses to
+start the apps without it.
 
 A value may use another one, as `DATABASE_URL` uses `POSTGRES_PORT` and
 `POSTGRES_DB`, so changing a port or a database name is one line.

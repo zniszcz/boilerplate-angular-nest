@@ -1,4 +1,6 @@
-# Local development only. Two modes:
+# Local development only. Every value comes from the root .env (copied from
+# .env.example), the same file Nx reads; only what differs inside a
+# container is set here. Two modes:
 #   docker compose up -d                  databases and admin panels, apps run locally
 #   docker compose --profile apps watch   everything in Docker, synced on change
 name: boilerplate-angular-nest
@@ -7,16 +9,15 @@ services:
   postgres:
     image: postgres:18.6
     environment:
-      # Local development credentials, not used anywhere else.
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+      - '127.0.0.1:${POSTGRES_PORT}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U app -d app']
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,7 +27,7 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     ports:
-      - '127.0.0.1:${ADMINER_PORT:-8080}:8080'
+      - '127.0.0.1:${ADMINER_PORT}:8080'
     depends_on:
       - postgres
 
@@ -41,15 +42,15 @@ services:
         default,
         'off',
         --user,
-        app,
+        '${VALKEY_USER}',
         'on',
-        '>app',
+        '>${VALKEY_PASSWORD}',
         '~*',
         '&*',
         '+@all',
       ]
     ports:
-      - '127.0.0.1:${VALKEY_PORT:-6379}:6379'
+      - '127.0.0.1:${VALKEY_PORT}:6379'
     volumes:
       - valkey-data:/data
     healthcheck:
@@ -58,9 +59,9 @@ services:
           'CMD',
           'valkey-cli',
           '--user',
-          'app',
+          '${VALKEY_USER}',
           '--pass',
-          'app',
+          '${VALKEY_PASSWORD}',
           '--no-auth-warning',
           'ping',
         ]
@@ -74,10 +75,10 @@ services:
     environment:
       RI_REDIS_HOST0: valkey
       RI_REDIS_ALIAS0: valkey
-      RI_REDIS_USERNAME0: app
-      RI_REDIS_PASSWORD0: app
+      RI_REDIS_USERNAME0: ${VALKEY_USER}
+      RI_REDIS_PASSWORD0: ${VALKEY_PASSWORD}
     ports:
-      - '127.0.0.1:${REDISINSIGHT_PORT:-5540}:5540'
+      - '127.0.0.1:${REDISINSIGHT_PORT}:5540'
     volumes:
       - redisinsight-data:/data
     depends_on:
@@ -96,19 +97,18 @@ services:
         -c,
         'pnpm nx run api:migrate && pnpm nx run api:seed && pnpm nx serve api',
       ]
+    env_file:
+      - path: .env
+        required: true
+    # Inside the container the databases are reached by service name, and
+    # media is under the same path as in the cluster.
     environment:
-      PORT: 3000
-      LOG_LEVEL: debug
       MEDIA_DIR: /app/media
-      DATABASE_URL: postgres://app:app@postgres:5432/app
-      REDIS_URL: redis://app:app@valkey:6379
-      SWAGGER_ENABLED: 'true'
-      # Local development values only. In the cluster they come from 1Password.
-      JWT_SECRET: local-dev-jwt-secret
-      SEED_USER_EMAIL: admin@example.com
-      SEED_USER_PASSWORD: admin
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://${VALKEY_USER}:${VALKEY_PASSWORD}@valkey:6379/${VALKEY_DB}
+    # The same port inside as outside, so the API listens on API_PORT.
     ports:
-      - '127.0.0.1:${API_PORT:-41001}:3000'
+      - '127.0.0.1:${API_PORT}:${API_PORT}'
     volumes:
       - media:/app/media
     depends_on:
@@ -135,10 +135,15 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: dev
+    env_file:
+      - path: .env
+        required: true
     environment:
-      API_PROXY_TARGET: http://api:3000
+      API_PROXY_TARGET: http://api:${API_PORT}
+    # The same port inside as outside: the dev server's port is set in
+    # apps/web/project.json, equal to WEB_PORT.
     ports:
-      - '127.0.0.1:${WEB_PORT:-41000}:4200'
+      - '127.0.0.1:${WEB_PORT}:${WEB_PORT}'
     develop:
       watch:
         - action: sync

@@ -56,7 +56,7 @@ place blocks. Code goes by what it does:
   `/api/users/me`, typed with `@boilerplate/contracts`.
 - The dev server passes `/api` to the API (`apps/web/proxy.conf.mjs`), so
   locally the app uses one address, like in the cluster. `API_PROXY_TARGET`
-  points it elsewhere; Docker Compose sets `http://api:3000`.
+  points it elsewhere; Docker Compose points it at the `api` container.
 - No `subscribe()` whose subscription is dropped, because it never ends and
   leaks memory. Use `toSignal`, the `async` pipe or `takeUntilDestroyed()`.
   ESLint checks it with `rxjs-x/no-ignored-subscription`.

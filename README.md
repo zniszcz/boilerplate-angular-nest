@@ -7,6 +7,12 @@ and a NestJS backend. Fork it when starting a new application.
 
 ## Quick start
 
+First copy the one settings file, which every way of running it reads:
+
+```sh
+cp .env.example .env
+```
+
 Everything in Docker, nothing else to install:
 
 ```sh
@@ -21,8 +27,8 @@ docker compose up -d
 pnpm dev
 ```
 
-Log in at http://localhost:41000 as `admin@example.com` with the password
-`admin`. Other ways to run it, configuration and ports:
+Log in at http://localhost:41000 with the test account, `SEED_USER_EMAIL`
+and `SEED_USER_PASSWORD` in `.env`. Other ways to run it, configuration and ports:
 [local development setup](docs/development/setup.md).
 
 ## Addresses
@@ -37,10 +43,12 @@ Log in at http://localhost:41000 as `admin@example.com` with the password
 | PostgreSQL   | `localhost:5432`                          | A, B    |
 | Valkey       | `localhost:6379`                          | A, B    |
 
-- Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
-  password and database.
-- Valkey user `app`, password `app`. The `default` user is off, like in the
-  cluster, so connections without a user fail with `NOAUTH`.
+- Adminer login: system `PostgreSQL`, server `postgres`, and the user,
+  password and database from `POSTGRES_USER`, `POSTGRES_PASSWORD` and
+  `POSTGRES_DB` in `.env`.
+- Valkey: the user and password from `VALKEY_USER` and `VALKEY_PASSWORD`.
+  The `default` user is off, like in the cluster, so connections without a
+  user fail with `NOAUTH`.
 - RedisInsight asks you to accept its licence on first open. After that the
   `valkey` connection is on the list, already logged in.
 - These credentials are for local development only.

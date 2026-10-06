@@ -13,7 +13,7 @@ by `pnpm docs:generate`; change it there. A new project needs one, or
 
 ### [api](../../apps/api/README.md)
 
-- A new environment variable goes to `.env.example`, to the `api` service in `compose.yaml`, and to 1Password if it is a secret.
+- A new environment variable goes to `.env.example`, with a safe local default, and to 1Password if it is a secret. Every way of running the API reads it from there.
 - A changed entity needs a migration (see [Adding a migration](../../apps/api/README.md#adding-a-migration)).
 - A new or changed route or DTO needs `pnpm contracts:generate`.
 - A new service or outside system changes the diagrams in `docs/README.md`.

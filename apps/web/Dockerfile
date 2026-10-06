@@ -16,7 +16,7 @@ FROM deps AS dev
 # Nx disables its daemon inside Docker, but file watching needs it.
 ENV NX_DAEMON=true
 COPY . .
-EXPOSE 4200
+# The port comes from apps/web/project.json, equal to WEB_PORT in .env.
 CMD ["pnpm", "nx", "serve", "web", "--host", "0.0.0.0"]
 
 # Production build of static files: the app and Storybook.

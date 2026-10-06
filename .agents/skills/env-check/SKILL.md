@@ -1,8 +1,8 @@
 ---
 name: env-check
 description: >
-  Lists the environment variables a branch adds or removes, flags secrets,
-  and checks that each reached every place it must. Use after planning a
+  Lists the environment variables a branch adds or removes and flags
+  secrets, so none is missing from .env.example or 1Password. Use after planning a
   feature, before opening a pull request, or when the user asks whether
   1Password and .env.example are up to date.
 metadata:
@@ -19,10 +19,10 @@ From the root of the worktree run
 
 ## Contract
 
-| status       | meaning                                                         | do next                                                                                                                                                                                                                                       |
-| ------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `no-changes` | `.env.example` gains or loses no variable                       | if the spec or the plan needs a new variable, it is missing from `.env.example`: add it with a comment and a safe local default                                                                                                               |
-| `changed`    | `data.added` (with `secret` and `inCompose`) and `data.removed` | for each added app variable with `inCompose: false`, add it to the service in `compose.yaml`; for each `secret: true`, ask the user to add it to 1Password for the cluster and wait for their yes; report removed ones as to delete there too |
+| status       | meaning                                         | do next                                                                                                                                         |
+| ------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-changes` | `.env.example` gains or loses no variable       | if the spec or the plan needs a new variable, it is missing from `.env.example`: add it with a comment and a safe local default                 |
+| `changed`    | `data.added` (with `secret`) and `data.removed` | for each `secret: true`, ask the user to add it to 1Password for the cluster and wait for their yes; report removed ones as to delete there too |
 
 You cannot see 1Password; never claim it is up to date, ask.
 

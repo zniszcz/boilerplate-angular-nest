@@ -1,6 +1,7 @@
 // Lists the environment variables a branch adds to or removes from
-// .env.example, flags the ones that look like secrets, and those missing
-// from the api service in compose.yaml. See CONTRIBUTING.md, step 4.
+// .env.example and flags the ones that look like secrets. Every way of
+// running the project reads .env, so that is the only place they go
+// locally. See CONTRIBUTING.md, step 4.
 //   node .agents/skills/env-check/scripts/env.mjs [base]
 // The base defaults to the merge base with the remote's default
 // branch. The last line of
@@ -35,19 +36,11 @@ const keys = (text) =>
   new Set([...text.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]));
 const before = keys(git('show', `${base}:.env.example`));
 const now = keys(readFileSync(join(ROOT, '.env.example'), 'utf8'));
-// Only the api service's environment counts: other services' variables,
-// such as the database's own POSTGRES_DB, are not the app's.
-const composeText = readFileSync(join(ROOT, 'compose.yaml'), 'utf8');
-const compose = composeText.match(/^ {2}api:\n((?: {4}.*\n|\n)*)/m)?.[1] ?? '';
 const SECRET = /SECRET|PASSWORD|TOKEN|KEY|PRIVATE|CREDENTIAL/;
 
 const added = [...now]
   .filter((name) => !before.has(name))
-  .map((name) => ({
-    name,
-    secret: SECRET.test(name),
-    inCompose: new RegExp(`^\\s+${name}:`, 'm').test(compose),
-  }));
+  .map((name) => ({ name, secret: SECRET.test(name) }));
 const removed = [...before].filter((name) => !now.has(name));
 
 const data = { base: base.slice(0, 7), added, removed };
