@@ -9,8 +9,14 @@ if git diff --cached --name-only | grep -q '^package\.json$'; then
   pnpm versions
 fi
 
-# Generated lists in the docs (projects, concepts, ADR index) follow the
-# repository: regenerate them and add them to this commit.
+# Every agent skill gets its link for Claude Code, and links to removed
+# skills go (docs/adr/0028-agent-skills.md).
+if pnpm --silent skills:link | grep -qE '^(Linked|Removed)'; then
+  git add -A .claude/skills
+fi
+
+# Generated lists in the docs (projects, concepts, ADR index, skills) follow
+# the repository: regenerate them and add them to this commit.
 if pnpm --silent docs:generate | grep -q '^Updated'; then
-  git add docs/README.md docs/adr/README.md
+  git add docs/README.md docs/adr/README.md .agents/skills/README.md
 fi

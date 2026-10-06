@@ -1,11 +1,19 @@
 // Keeps the lists in the documentation in sync with the repository, so they
-// never go stale: the projects with what their README says, the concepts and
-// the ADR index. Only the parts between generated markers change.
+// never go stale: the projects with what their README says, the concepts,
+// the ADR index and the agent skills, whose rules it also checks. Only the
+// parts between generated markers change.
 //   node scripts/docs.mjs generate   rewrites them
 //   node scripts/docs.mjs check      fails when they are out of date (CI)
 // See docs/adr/0020-documentation-layout.md.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  readlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
@@ -90,9 +98,104 @@ function adrs() {
   return ['| Nr | Decision |', '| --- | --- |', ...rows].join('\n');
 }
 
+/** The frontmatter fields a skill needs: name, description, metadata.kind. */
+function frontmatter(markdown, file) {
+  const block = markdown.match(/^---\n([\s\S]*?)\n---/)?.[1];
+  if (!block) {
+    throw new Error(`${file} has no frontmatter`);
+  }
+  const field = (key, indent = '') => {
+    const match = block.match(
+      new RegExp(
+        `^${indent}${key}:[ \\t]*(.*)((?:\\n${indent}[ \\t]+.*)*)`,
+        'm',
+      ),
+    );
+    if (!match) {
+      return undefined;
+    }
+    // A folded or literal block (`>` or `|`) continues on indented lines.
+    const first = /^[>|][-+]?$/.test(match[1]) ? '' : match[1];
+    return `${first} ${match[2]}`.replace(/\s+/g, ' ').trim();
+  };
+  return {
+    name: field('name'),
+    description: field('description'),
+    kind: field('kind', '  '),
+  };
+}
+
+const KINDS = ['step', 'aggregator'];
+
+function isLinkTo(path, target) {
+  try {
+    return (
+      lstatSync(join(ROOT, path)).isSymbolicLink() &&
+      readlinkSync(join(ROOT, path)) === target
+    );
+  } catch {
+    return false;
+  }
+}
+
+function skills() {
+  const dirs = (dir) =>
+    existsSync(join(ROOT, dir))
+      ? readdirSync(join(ROOT, dir), { withFileTypes: true })
+          .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+          .map((entry) => entry.name)
+          .sort()
+      : [];
+  const names = dirs('.agents/skills');
+  for (const link of dirs('.claude/skills')) {
+    if (!names.includes(link)) {
+      throw new Error(
+        `.claude/skills/${link} has no skill in .agents/skills. Remove it.`,
+      );
+    }
+  }
+  const rows = names.map((name) => {
+    const dir = `.agents/skills/${name}`;
+    const file = `${dir}/SKILL.md`;
+    const text = read(file);
+    const meta = frontmatter(text, file);
+    if (meta.name !== name) {
+      throw new Error(`${file}: name must be "${name}", like its folder`);
+    }
+    if (!meta.description) {
+      throw new Error(`${file} needs a description`);
+    }
+    if (!KINDS.includes(meta.kind)) {
+      throw new Error(`${file} needs metadata.kind: ${KINDS.join(' or ')}`);
+    }
+    if (!isLinkTo(`.claude/skills/${name}`, `../../${dir}`)) {
+      throw new Error(
+        `${dir} is not linked for Claude Code. Run: pnpm skills:link`,
+      );
+    }
+    const contract = text.split(/^## Contract\s*$/m)[1]?.split(/^## /m)[0];
+    if (existsSync(join(ROOT, dir, 'scripts')) && !contract) {
+      throw new Error(`${file} has scripts, so it needs a ## Contract section`);
+    }
+    const statuses = [...(contract ?? '').matchAll(/^\|\s*(`[^`]+`)/gm)]
+      .map((match) => match[1])
+      .join(' ');
+    return `| [${name}](${name}/SKILL.md) | ${meta.kind} | ${summary(meta.description)} | ${statuses} |`;
+  });
+  if (rows.length === 0) {
+    return 'No skills yet.';
+  }
+  return [
+    '| Skill | Kind | Goal | Script statuses |',
+    '| --- | --- | --- | --- |',
+    ...rows,
+  ].join('\n');
+}
+
 const TARGETS = [
   { file: 'docs/README.md', blocks: { projects, concepts } },
   { file: 'docs/adr/README.md', blocks: { adrs } },
+  { file: '.agents/skills/README.md', blocks: { skills } },
 ];
 
 let stale = false;
@@ -106,7 +209,15 @@ for (const { file, blocks } of TARGETS) {
     if (from < 0 || to < 0) {
       throw new Error(`${file} has no ${start} ... ${end} markers`);
     }
-    text = `${text.slice(0, from + start.length)}\n\n${build()}\n\n${text.slice(to)}`;
+    let built;
+    try {
+      built = build();
+    } catch (error) {
+      // One line an agent or a person can act on, not a stack trace.
+      console.error(error.message);
+      process.exit(1);
+    }
+    text = `${text.slice(0, from + start.length)}\n\n${built}\n\n${text.slice(to)}`;
   }
   const path = join(ROOT, file);
   const options = await prettier.resolveConfig(path);

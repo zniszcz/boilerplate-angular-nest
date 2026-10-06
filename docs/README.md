@@ -183,8 +183,11 @@ before a commit, are in [`checks.yml`](../.github/workflows/checks.yml) and
 run twice: **Check the branch alone** ([`ci.yml`](../.github/workflows/ci.yml)) on
 every push to a branch, and **Check the branch works when merged into main**
 ([`merge.yml`](../.github/workflows/merge.yml)) on a pull request, against
-the branch merged with the current `main`. Each run ends with a short
-summary on its page. On `main`, **Check the branch alone** then builds, tests and pushes only the images of apps that
+the branch merged with the current `main`. Both skip a push that changes
+only Markdown; **Check the docs alone**
+([`docs.yml`](../.github/workflows/docs.yml)) checks such a push: its
+formatting, the generated lists and the agent skills. Each run ends with a
+short summary on its page. On `main`, **Check the branch alone** then builds, tests and pushes only the images of apps that
 changed since the last successful run, to
 `ghcr.io/zniszcz/boilerplate-angular-nest/<app>` with the tags `latest` and
 the commit SHA, keeping the 10 newest versions and any tagged `prod`. Why:
@@ -213,8 +216,10 @@ Mechanisms that span several libraries, generated from `docs/concepts`:
 Topics of one app or library are in its README, listed under
 [Code](#code).
 
-Working on the code: [local setup](development/setup.md) and
-[conventions](development/conventions.md).
+Working on the code: [local setup](development/setup.md),
+[conventions](development/conventions.md) and the
+[feature workflow](../CONTRIBUTING.md), which
+[agent skills](../.agents/skills/README.md) carry out.
 
 ## 9. Architecture decisions
 
