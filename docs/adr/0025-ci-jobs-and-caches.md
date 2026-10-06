@@ -23,9 +23,11 @@ and every step waited for the one before it.
     nothing it depends on changed, so this is not `nx affected`,
   - Stryker results ([ADR 0022](0022-mutation-testing.md)),
   - Chromium per lockfile; its system libraries still come from apt.
-- **A summary on the run's page**: `scripts/ci-summary.mjs` writes the
-  mutation score with files that have survivors, and every E2E scenario
-  with its result. Test failures show as annotations from Vitest.
+- **One short summary on the run's page**, written by a Summary job after
+  the five, even when one failed: `scripts/ci-summary.mjs` gives a line per
+  job with its result and key number, such as the mutation score or the
+  scenarios passed, and lists details only for what failed. Test failures
+  show as annotations from Vitest.
 - **Reports as artifacts on failure**: the Stryker HTML report and the E2E
   report with traces.
 
