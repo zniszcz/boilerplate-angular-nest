@@ -1,0 +1,22 @@
+# Merge with main: on a pull request, the same checks as Branch checks
+# (checks.yml), on the branch merged with the current main. Branches pass on
+# their own and still break together, for example when one renames what
+# another starts to use; with several agents working at once that happens.
+# See docs/adr/0025-ci-jobs-and-caches.md.
+name: Merge with main
+
+on:
+  pull_request:
+    paths-ignore: ['**/*.md', 'docs/**']
+
+concurrency:
+  group: merge-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
