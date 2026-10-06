@@ -72,3 +72,26 @@ sequenceDiagram
   own client address and an admin API client to set up what a scenario
   takes as given.
 - Reports go to `reports/e2e`, traces of failed retries to `tmp/e2e-results`.
+
+## Mutation testing in CI
+
+| Run                               | Mutants checked            | Results cache                   |
+| --------------------------------- | -------------------------- | ------------------------------- |
+| `pnpm mutate` locally, `pre-push` | only those in changed code | `reports/mutation/`, not shared |
+| CI on a pull request              | only those in changed code | restored from the GitHub cache  |
+| CI on a push to `main`            | only those in changed code | restored, then saved            |
+| `mutation-nightly.yml`, 02:00 UTC | all (`--force`)            | saved fresh                     |
+
+The nightly run is started by GitHub's scheduler, from the workflow file on
+`main`, and runs on GitHub's machines. Things to know:
+
+- **Start time is approximate.** Under load GitHub delays scheduled runs,
+  sometimes by tens of minutes.
+- **It stops after 60 days without activity** in a public repository. GitHub
+  disables the schedule; turn it on again in the Actions tab, on the
+  workflow's page.
+- **In a fork it is off** until someone enables workflows there. After
+  forking, open the Actions tab and enable them, or the nightly run never
+  happens and CI keeps reusing old results.
+- **Run it by hand** from the Actions tab (`workflow_dispatch`) after a change
+  that tests do not touch directly, such as a dependency upgrade.

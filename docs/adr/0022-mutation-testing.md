@@ -50,3 +50,6 @@ now; it is planned once there are several forks.
   (`reports/mutation/index.html`) with the exact change that survived.
 - `pnpm mutate` needs Docker, like the API tests.
 - Code no test reaches shows up too, which is often dead code to remove.
+- The nightly run is scheduled by GitHub Actions alone, on GitHub's
+  machines, from the workflow file on `main`; nothing on our servers starts
+  it. How to keep it running: [Testing](../concepts/testing.md#mutation-testing-in-ci).
