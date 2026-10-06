@@ -49,3 +49,26 @@ Two requests that should collide rarely do on a fast machine. The refresh
 race test holds a row lock on the tokens, waits in `pg_stat_activity` until
 both requests wait for it, and then releases it. The race then happens every
 time, not by luck.
+
+## End-to-end scenarios
+
+```mermaid
+sequenceDiagram
+    participant P as Playwright
+    participant S as serve.mjs
+    participant PG as PostgreSQL container
+    participant A as built API :3100
+    participant W as built web :4300
+    P->>S: webServer, once per run
+    S->>PG: start, migrate, seed the admin
+    S->>A: node dist/apps/api/main.js
+    S->>W: static files, /api proxied to the API
+    P->>W: each scenario in its own browser, in parallel
+```
+
+- `bddgen` turns `features/*.feature` into Playwright tests in
+  `.features-gen/`, which is not committed.
+- `steps/fixtures.ts` gives every scenario its own users (`accounts`), its
+  own client address and an admin API client to set up what a scenario
+  takes as given.
+- Reports go to `reports/e2e`, traces of failed retries to `tmp/e2e-results`.

@@ -43,6 +43,9 @@ jobs:
       # API tests start PostgreSQL in Docker, which the runner has.
       - run: pnpm test
       - run: pnpm mutate
+      # Scenarios from apps/web-e2e/features on the built apps, in Chromium.
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
       - run: pnpm nx run storybook:build-storybook
       - run: pnpm contracts:check
       - run: pnpm docs:check

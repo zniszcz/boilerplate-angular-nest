@@ -115,6 +115,7 @@ the tests use a real database: [ADR 0021](../adr/0021-testing-strategy.md).
 nvm install        # installs the Node.js version from .nvmrc
 corepack enable    # provides the pnpm version from package.json
 pnpm install       # installs dependencies and the git hooks
+pnpm exec playwright install chromium   # the browser for pnpm e2e
 ```
 
 ## Configuration

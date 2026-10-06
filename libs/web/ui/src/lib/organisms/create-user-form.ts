@@ -61,7 +61,7 @@ export interface CreatedUser {
           <p>
             {{ 'users.create.created' | transloco: { email: created.email } }}
           </p>
-          <p class="font-mono text-base break-all">
+          <p class="font-mono text-base break-all" data-testid="new-password">
             {{ created.password }}
           </p>
           <p class="text-muted-foreground">

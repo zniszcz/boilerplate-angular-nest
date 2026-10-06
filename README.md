@@ -48,8 +48,8 @@ Log in at http://localhost:4200 as `admin@example.com` with the password
 ## Commands
 
 These need the [machine setup](docs/development/setup.md#machine-setup).
-`pnpm test`, `pnpm mutate` and `git push`, whose hook runs mutation testing,
-also need Docker.
+`pnpm test`, `pnpm mutate`, `pnpm e2e` and `git push`, whose hook runs
+mutation testing, also need Docker.
 
 | Command                                                 | What it does                                                                      |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -59,6 +59,7 @@ also need Docker.
 | `pnpm lint`                                             | Runs ESLint in all projects                                                       |
 | `pnpm test`                                             | Runs unit and API tests; API tests need Docker                                    |
 | `pnpm mutate`                                           | Mutation testing of backend domain and application layers with Stryker            |
+| `pnpm e2e`                                              | Builds both apps and runs the `.feature` scenarios in Chromium; needs Docker      |
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                              |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version |
 | `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index                  |

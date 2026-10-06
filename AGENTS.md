@@ -24,7 +24,9 @@ Why: [ADR 0021](docs/adr/0021-testing-strategy.md). How they run:
 [Testing](docs/concepts/testing.md).
 
 - Write the test first, from the requirement, and see it fail. Never derive
-  the expected value from the implementation.
+  the expected value from the implementation. A new user-facing feature
+  starts as a `.feature` file in `apps/web-e2e/features`. See
+  [ADR 0023](docs/adr/0023-end-to-end-tests.md).
 - Test behaviour over the API with a real database. Unit tests only for
   domain rules and frontend logic. No tests for controllers, modules,
   getters, presentational components, no snapshots.
@@ -67,6 +69,7 @@ Why: [ADR 0021](docs/adr/0021-testing-strategy.md). How they run:
   | `type:feature`   | frontend pages or containers that connect state to components     | `libs/web/auth`, `i18n`                  |
   | `type:ui`        | presentational components only                                    | `libs/web/ui`, `libs/web/helm`           |
   | `type:contracts` | types shared by the frontend and the backend                      | `libs/shared/contracts`                  |
+  | `type:e2e`       | end-to-end tests that drive the app from outside                  | `apps/web-e2e`                           |
 
   A library that fits no tag is a sign of a missing decision: ask, and
   record the new tag in an ADR.

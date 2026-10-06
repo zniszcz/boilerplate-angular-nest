@@ -7,3 +7,4 @@ tmp/
 *.local
 reports/
 .stryker-tmp/
+.features-gen/
