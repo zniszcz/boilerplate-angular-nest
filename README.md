@@ -74,7 +74,7 @@ mutation testing, also need Docker.
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                                                    |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version                       |
 | `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index, agent skills                          |
-| `pnpm docs:check`                                       | Fails when those lists are out of date or a skill breaks its rules                                      |
+| `pnpm docs:check`                                       | Fails on out-of-date lists, broken links in the docs, or a skill that breaks its rules                  |
 | `pnpm instance up <branch>`                             | Runs a branch in its own worktree, ports and database; see [setup](docs/development/setup.md#instances) |
 | `pnpm skills:link`                                      | Links each skill in `.agents/skills` for Claude Code                                                    |
 | `pnpm format`                                           | Formats all files with Prettier                                                                         |

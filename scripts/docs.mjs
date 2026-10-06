@@ -182,11 +182,13 @@ const slug = (heading) =>
     .replace(/[^\p{L}\p{N} _-]/gu, '')
     .replace(/ /g, '-');
 
-/** Fails on a link in a skill to a Markdown file or heading that is gone,
- * so renaming a step in CONTRIBUTING.md cannot break skills silently. */
+/** Reports a link to a file or heading that is gone, so renaming a step
+ * in CONTRIBUTING.md cannot break skills or docs silently. Code blocks are
+ * examples, not links. */
 function checkLinks(file) {
-  for (const [, target] of read(file).matchAll(/\]\(([^)\s]+)\)/g)) {
-    if (/^https?:/.test(target)) {
+  const text = read(file).replace(/```[\s\S]*?```/g, '');
+  for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+    if (/^(https?|mailto):/.test(target)) {
       continue;
     }
     const [path, anchor] = target.split('#');
@@ -196,10 +198,14 @@ function checkLinks(file) {
       continue;
     }
     if (anchor && linked.endsWith('.md')) {
-      const text = read(linked);
+      const linkedText = read(linked);
       const headings = [
-        ...[...text.matchAll(/^#+ (.+)$/gm)].map((match) => slug(match[1])),
-        ...[...text.matchAll(/<a id="([^"]+)"/g)].map((match) => match[1]),
+        ...[...linkedText.matchAll(/^#+ (.+)$/gm)].map((match) =>
+          slug(match[1].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')),
+        ),
+        ...[...linkedText.matchAll(/<a id="([^"]+)"/g)].map(
+          (match) => match[1],
+        ),
       ];
       if (!headings.includes(anchor)) {
         problem(`${file} links to ${target}, a heading that does not exist`);
@@ -252,7 +258,6 @@ function skills() {
     if (!isLinkTo(`.claude/skills/${name}`, `../../${dir}`)) {
       problem(`${dir} is not linked for Claude Code. Run: pnpm skills:link`);
     }
-    checkLinks(file);
     const contract = text.split(/^## Contract\s*$/m)[1]?.split(/^## /m)[0];
     if (existsSync(join(ROOT, dir, 'scripts')) && !contract) {
       problem(`${file} has scripts, so it needs a ## Contract section`);
@@ -278,6 +283,19 @@ const TARGETS = [
   { file: '.agents/skills/README.md', blocks: { skills } },
   { file: 'docs/development/impact.md', blocks: { impact } },
 ];
+
+// Every tracked Markdown file but the ADR template, whose links are
+// placeholders. The skills are among them.
+for (const file of execFileSync('git', ['ls-files', '*.md'], {
+  cwd: ROOT,
+  encoding: 'utf8',
+})
+  .split('\n')
+  .filter((file) => file && file !== 'docs/adr/template.md')) {
+  if (existsSync(join(ROOT, file))) {
+    checkLinks(file);
+  }
+}
 
 const outputs = [];
 for (const { file, blocks } of TARGETS) {

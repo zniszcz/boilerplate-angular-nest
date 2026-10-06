@@ -53,6 +53,7 @@ Why: [ADR 0021](docs/adr/0021-testing-strategy.md). How they run:
 
 ## Where code goes
 
+- A new app follows [Adding an app](docs/development/adding-an-app.md).
 - Apps only wire things together. Logic lives in libraries. See
   [Code](docs/README.md#code) and
   [ADR 0005](docs/adr/0005-nx-monorepo-layout.md).

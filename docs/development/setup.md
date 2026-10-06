@@ -143,6 +143,8 @@ stateDiagram-v2
 
 ### Adding an app to instances
 
+Part of [adding an app](adding-an-app.md).
+
 Every app takes its ports from `.env`, never from `project.json`, so the
 same file steers every way of running it. A new app follows the API or the
 web app:
