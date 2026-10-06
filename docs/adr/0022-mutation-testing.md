@@ -28,7 +28,12 @@ notices is a rule nobody checks.
   mutants in changed code run again. Full run about 80 seconds, incremental
   about 7 seconds on a laptop. **Concurrency 3**, so the laptop stays usable.
 - **Where it runs**: in CI on every run, and locally in the git `pre-push`
-  hook, not `pre-commit`, so commits stay instant.
+  hook, not `pre-commit`, so commits stay instant. CI restores the
+  incremental results from the GitHub cache; a full run took over 6 minutes
+  there. Incremental results trust earlier ones for unchanged code, and a
+  change elsewhere, such as a migration, could leave one stale, so a
+  **nightly full run** (`mutation-nightly.yml`, `--force`) checks every mutant
+  again and saves fresh results.
 - **Vitest 4, not 5.** The Stryker 10.0.0 runner matches no test on
   Vitest 5 and reports every mutant as survived (stryker-js#6210), and
   `@nx/vitest` 23.2.1 supports only Vitest 3 and 4. Move to Vitest 5 when

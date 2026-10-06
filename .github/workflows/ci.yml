@@ -42,7 +42,20 @@ jobs:
       - run: pnpm build
       # API tests start PostgreSQL in Docker, which the runner has.
       - run: pnpm test
+      # Results of the last run, so only mutants in changed code run again.
+      # The nightly full run refreshes them. See
+      # docs/adr/0022-mutation-testing.md.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/mutation/incremental.json
+          key: mutation-${{ github.sha }}
+          restore-keys: mutation-
       - run: pnpm mutate
+      - if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/mutation/incremental.json
+          key: mutation-${{ github.sha }}
       # Scenarios from apps/web-e2e/features on the built apps, in Chromium.
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
