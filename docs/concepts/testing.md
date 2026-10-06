@@ -1,14 +1,16 @@
 # Testing
 
-How the backend tests run against a real database. What to test and why:
+How the tests run: backend tests against a real database, frontend logic in
+Angular's test environment. What to test and why:
 [ADR 0021](../adr/0021-testing-strategy.md); mutation testing:
 [ADR 0022](../adr/0022-mutation-testing.md).
 
-| Where                         | What                                                | Config                       |
-| ----------------------------- | --------------------------------------------------- | ---------------------------- |
-| `libs/api/*/src/**/*.spec.ts` | unit tests of domain rules, no Nest and no database | `vitest.config.mts` per lib  |
-| `apps/api/test/*.spec.ts`     | API tests: the whole app over HTTP on PostgreSQL    | `apps/api/vitest.config.mts` |
-| root                          | all backend tests at once, for Stryker only         | `vitest.mutation.config.mts` |
+| Where                         | What                                                                                               | Config                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `libs/api/*/src/**/*.spec.ts` | unit tests of domain rules, no Nest and no database                                                | `vitest.config.mts` per lib                                           |
+| `libs/web/*/src/**/*.spec.ts` | unit tests of frontend logic, such as the refresh interceptor, in jsdom with TestBed; no templates | `vitest.config.mts` per lib, setup in `tools/vitest/angular-setup.ts` |
+| `apps/api/test/*.spec.ts`     | API tests: the whole app over HTTP on PostgreSQL                                                   | `apps/api/vitest.config.mts`                                          |
+| root                          | all backend tests at once, for Stryker only                                                        | `vitest.mutation.config.mts`                                          |
 
 `pnpm test` runs every project's tests through Nx; `pnpm mutate` runs
 Stryker.

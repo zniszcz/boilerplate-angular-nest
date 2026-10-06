@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../../dist/out-tsc",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.spec.ts", "vitest.config.mts"]
+}
