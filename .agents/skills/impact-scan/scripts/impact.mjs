@@ -3,7 +3,8 @@
 // reads only what matters. See CONTRIBUTING.md, step 8.
 //   node .agents/skills/impact-scan/scripts/impact.mjs <name>.todo.md [base]
 // The plan names its projects in a line `Projects: a, b` near the top of the
-// task list. The base defaults to the merge base with origin/main. The last
+// task list. The base defaults to the merge base with origin/main, not the local
+// main, which may be behind. The last
 // line of stdout is JSON: status, summary, log, data.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -20,7 +21,11 @@ function finish(status, summary, data = {}) {
 }
 
 const git = (...args) =>
-  execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
+  execFileSync('git', args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
 
 if (!todo) {
   console.error('Usage: impact.mjs <name>.todo.md [base]');
@@ -41,6 +46,12 @@ const planned = plannedLine[1]
   .map((name) => name.trim().replace(/`/g, ''))
   .filter(Boolean);
 
+// Fresh origin/main first; offline, the last fetched one has to do.
+try {
+  git('fetch', '--quiet', 'origin', 'main');
+} catch {
+  // no network
+}
 const base = baseArg ?? git('merge-base', 'HEAD', 'origin/main');
 // Committed since the base, changed and new files in the working tree.
 const files = [

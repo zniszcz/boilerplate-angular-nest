@@ -42,6 +42,7 @@ Needs only Docker with Docker Compose. Node.js and pnpm run inside the
 containers.
 
 ```sh
+cp .env.example .env   # once; see Configuration
 docker compose --profile apps watch
 ```
 
@@ -55,7 +56,12 @@ and keeps them in sync with your files.
 - Each app has its own `Dockerfile`. The `dev` stage runs `nx serve`.
 - Nx turns off its daemon inside Docker, but `nx serve api` needs it to
   restart on change, so the `dev` stage sets `NX_DAEMON=true`.
-- Environment variables come from `compose.yaml`.
+- The containers read the root `.env`, like the other options, and
+  nothing overrides it. The API and web containers use the host's network,
+  so `localhost` in `.env` reaches the databases inside them too.
+- **macOS and Windows:** turn on host networking in Docker Desktop, under
+  Settings → Resources → Network → Enable host networking (Docker Desktop
+  4.34 or newer). Linux needs nothing.
 - Stop with `Ctrl+C`, then `docker compose --profile apps down`.
 
 <a id="option-b"></a>
@@ -128,15 +134,14 @@ stateDiagram-v2
 
 - The worktree is `../<repository>--<branch>`. Work there as in any
   checkout; its `.env` is a copy of the main one with the instance's values.
-- Slot N, from 1 to 3, has the ports from 41000 + 10·N, after the main
-  checkout's 41000: web +0, API +1,
-  Storybook +2, API debugger +3, in the order of the
-  `# per-instance-ports` block in `.env.example`. To add an app to the
-  block, add its port variable at the end of that block; to remove one,
-  delete its line. Existing instances keep their old `.env` until they are
-  created again.
-- The last line of every command is JSON for scripts and agents. The full
-  log, and each app's output, are in `tmp/instances/` of the main checkout.
+- Slot N, from 1 to `INSTANCE_LIMIT` (3 by default), has the ports from
+  41000 + 10·N, after the main checkout's 41000, in the order of the
+  `# per-instance-ports` block in `.env.example`.
+- An instance runs the Nx projects in `INSTANCE_APPS` with `nx serve`, and
+  runs the targets in `INSTANCE_SETUP` once when it is created. Existing
+  instances keep their old `.env` until they are created again.
+
+To add an app to instances, see [Adding an app](adding-an-app.md#5-isolated-instances).
 
 <a id="setup"></a>
 
@@ -157,16 +162,18 @@ corepack enable    # provides the pnpm version from package.json
 pnpm install       # installs dependencies and the git hooks
 cp .env.example .env   # the one environment file, see Configuration
 pnpm exec playwright install chromium   # the browser for pnpm e2e
+gh auth login      # GitHub CLI, https://cli.github.com; for pnpm instance and the agent skills
 ```
 
 ## Configuration
 
 One file: `.env` in the repository root, copied from
 [`.env.example`](../../.env.example), which lists every variable with a
-local default and a comment. Docker Compose reads it for the published
-ports, and Nx loads it for every task, such as `nx serve api` or
-`nx run api:migrate`. It is not committed. Inside Docker (option A) the
-apps get their variables from `compose.yaml` instead.
+local default and a comment. Every way of running the project reads it:
+Docker Compose for its services and, in option A, for the containers of the
+apps; Nx for every task, such as `nx serve api` or `nx run api:migrate`. It
+is not committed. Create it before the first start; Compose refuses to
+start the apps without it.
 
 A value may use another one, as `DATABASE_URL` uses `POSTGRES_PORT` and
 `POSTGRES_DB`, so changing a port or a database name is one line.
@@ -179,7 +186,6 @@ change it in `.env`, for example `POSTGRES_PORT=5442`.
 
 The ports between `# per-instance-ports` markers belong to one instance of
 the apps, in a block of ten: the main checkout has 41000 to 41003, an
-isolated instance in slot N the same offsets from 41000 + 10·N. The web
-dev server, Storybook and the API debugger take their defaults from
-`project.json`, because Nx options cannot read `.env`; keep those equal to
-`.env.example`. The API listens on `API_PORT`.
+isolated instance in slot N the same offsets from 41000 + 10·N. Every app
+takes its ports from `.env`: the `serve` targets of the web app, Storybook
+and the API debugger pass them on, and the API reads `API_PORT` itself.

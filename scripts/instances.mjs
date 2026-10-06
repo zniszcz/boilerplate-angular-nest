@@ -1,7 +1,7 @@
 // Runs a branch as an isolated instance of the apps: its own git worktree
 // next to the main checkout, its own block of ports, its own database on the
-// shared PostgreSQL and its own Valkey database. At most three instances
-// besides the main checkout. See docs/adr/0030-isolated-instances.md.
+// shared PostgreSQL and its own Valkey database. At most INSTANCE_LIMIT
+// instances besides the main checkout. See docs/adr/0030-isolated-instances.md.
 //   node scripts/instances.mjs up <branch>      create or start, then wait
 //   node scripts/instances.mjs stop <branch>    stop its apps, keep the rest
 //   node scripts/instances.mjs down <branch>    remove it, if nothing is lost
@@ -20,14 +20,30 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
+import { connect } from 'node:net';
+import { GhUnavailable, pullRequestOf } from './gh.mjs';
 import { basename, dirname, join } from 'node:path';
 
-const LIMIT = 3;
-const FIRST_PORT = 41000;
-const BLOCK = 10;
-const READY_TIMEOUT_MS = 180_000;
+// Starting takes about 15 s; a minute without listening means it hangs.
+const READY_TIMEOUT_MS = 60_000;
 
 const MAIN = mainCheckout();
+const ENV = readEnv(join(MAIN, '.env'));
+const EXAMPLE = readEnv(join(MAIN, '.env.example'));
+const setting = (name) => Number(ENV[name] ?? EXAMPLE[name]);
+const LIMIT = setting('INSTANCE_LIMIT');
+const list = (name) =>
+  (ENV[name] ?? EXAMPLE[name] ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+// The Nx projects an instance runs with `nx serve`, and the Nx targets it
+// runs once when it is created, such as migrations.
+const APPS = list('INSTANCE_APPS');
+const SETUP = list('INSTANCE_SETUP');
+/** An app's port variable: `web` listens on WEB_PORT. */
+const portOf = (app) => `${app.toUpperCase().replace(/-/g, '_')}_PORT`;
+const BLOCK = setting('INSTANCE_PORT_BLOCK');
 const REGISTRY = join(gitCommonDir(), 'instances.json');
 const LOG_DIR = join(MAIN, 'tmp/instances');
 mkdirSync(LOG_DIR, { recursive: true });
@@ -62,6 +78,33 @@ function run(cmd, args, options = {}) {
     log(`${error.stdout ?? ''}${error.stderr ?? ''}`);
     throw new Error(`${cmd} ${args.slice(0, 3).join(' ')} failed`);
   }
+}
+
+/** A .env file as an object, with `${NAME}` replaced by earlier values. */
+function readEnv(file) {
+  const values = {};
+  if (!existsSync(file)) {
+    return values;
+  }
+  for (const [, name, raw] of readFileSync(file, 'utf8').matchAll(
+    /^([A-Z][A-Z0-9_]*)=(.*)$/gm,
+  )) {
+    values[name] = raw.replace(
+      /\$\{([A-Z0-9_]+)\}/g,
+      (_, ref) => values[ref] ?? '',
+    );
+  }
+  return values;
+}
+
+/** User, password and database of a connection URL in the main .env. */
+function credentials(name) {
+  const url = new URL(ENV[name] ?? EXAMPLE[name]);
+  return {
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database: url.pathname.slice(1),
+  };
 }
 
 function mainCheckout() {
@@ -107,8 +150,10 @@ function portVariables() {
   return [...block[1].matchAll(/^([A-Z0-9_]+)=/gm)].map((match) => match[1]);
 }
 
+/** Slot 0 is the main checkout, on the ports .env.example sets. */
 function portsOf(slot) {
-  const base = FIRST_PORT + slot * BLOCK;
+  const first = Number(EXAMPLE[portVariables()[0]]);
+  const base = first + slot * BLOCK;
   return Object.fromEntries(
     portVariables().map((name, offset) => [name, base + offset]),
   );
@@ -168,21 +213,25 @@ function startApp(instance, name, args) {
   return { pid: child.pid, file };
 }
 
-async function reachable(url) {
-  try {
-    await fetch(url, { signal: AbortSignal.timeout(2000) });
-    return true;
-  } catch {
-    return false;
-  }
+/** Whether something listens on a local port. */
+function listening(port) {
+  return new Promise((resolve) => {
+    const socket = connect({ port, host: 'localhost' });
+    const done = (result) => {
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(2000);
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+    socket.once('timeout', () => done(false));
+  });
 }
 
-/** Waits for both apps; reports a taken port as soon as a log shows it. */
+/** Waits for every app; reports a taken port as soon as a log shows it. */
 async function waitReady(instance, apps) {
-  const urls = {
-    api: `http://localhost:${instance.ports.API_PORT}/api/health/live`,
-    web: `http://localhost:${instance.ports.WEB_PORT}/`,
-  };
+  // Listening on their ports is enough: the logs show anything worse.
+  const ports = APPS.map((app) => instance.ports[portOf(app)]);
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     for (const [name, app] of Object.entries(apps)) {
@@ -198,7 +247,7 @@ async function waitReady(instance, apps) {
         return { ok: false, reason: 'exited', app: name };
       }
     }
-    const ready = await Promise.all(Object.values(urls).map(reachable));
+    const ready = await Promise.all(ports.map(listening));
     if (ready.every(Boolean)) {
       return { ok: true };
     }
@@ -211,32 +260,61 @@ function compose(args) {
   return run('docker', ['compose', ...args]);
 }
 
+/** The Compose service that publishes a port of the main .env, such as
+ * POSTGRES_PORT, so service names live only in compose.yaml. */
+function serviceOn(variable) {
+  const port = Number(ENV[variable] ?? EXAMPLE[variable]);
+  const services = compose(['ps', '--format', 'json'])
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const service = services.find((s) =>
+    (s.Publishers ?? []).some((p) => p.PublishedPort === port),
+  );
+  if (!service) {
+    throw new Error(
+      `No running Compose service publishes ${variable} (${port}). Run: docker compose up -d`,
+    );
+  }
+  return service.Service;
+}
+
 function createDatabase(name) {
+  const { user, database } = credentials('DATABASE_URL');
   const exists = compose([
     'exec',
     '-T',
-    'postgres',
+    serviceOn('POSTGRES_PORT'),
     'psql',
     '-U',
-    'app',
+    user,
     '-d',
-    'app',
+    database,
     '-Atc',
     `select 1 from pg_database where datname = '${name}'`,
   ]).trim();
   if (exists !== '1') {
-    compose(['exec', '-T', 'postgres', 'createdb', '-U', 'app', name]);
+    compose([
+      'exec',
+      '-T',
+      serviceOn('POSTGRES_PORT'),
+      'createdb',
+      '-U',
+      user,
+      name,
+    ]);
   }
 }
 
 function dropDatabase(name) {
+  const { user } = credentials('DATABASE_URL');
   compose([
     'exec',
     '-T',
-    'postgres',
+    serviceOn('POSTGRES_PORT'),
     'dropdb',
     '-U',
-    'app',
+    user,
     '--if-exists',
     '--force',
     name,
@@ -244,15 +322,16 @@ function dropDatabase(name) {
 }
 
 function flushValkey(db) {
+  const { user, password } = credentials('REDIS_URL');
   compose([
     'exec',
     '-T',
-    'valkey',
+    serviceOn('VALKEY_PORT'),
     'valkey-cli',
     '--user',
-    'app',
+    user,
     '--pass',
-    'app',
+    password,
     '--no-auth-warning',
     '-n',
     String(db),
@@ -280,6 +359,16 @@ function branchExists(name) {
 }
 
 async function up(name) {
+  const missing = APPS.filter((app) => !portVariables().includes(portOf(app)));
+  if (APPS.length === 0 || missing.length > 0) {
+    return finish(
+      'bad-config',
+      APPS.length === 0
+        ? 'INSTANCE_APPS in .env.example names no app'
+        : `No ${missing.map(portOf).join(', ')} in the per-instance-ports block of .env.example`,
+      { apps: APPS, missing },
+    );
+  }
   const sweepResult = sweepInstances();
   const registry = readRegistry();
   let instance = registry.instances[name];
@@ -289,7 +378,7 @@ async function up(name) {
       return finish(
         'limit-reached',
         `${LIMIT} instances already exist; remove one first`,
-        { instances: summaries(registry), sweep: sweepResult },
+        { limit: LIMIT, instances: summaries(registry), sweep: sweepResult },
       );
     }
     const id = slug(name);
@@ -298,7 +387,11 @@ async function up(name) {
       slug: id,
       slot: freeSlot(registry),
       worktree: join(dirname(MAIN), `${basename(MAIN)}--${id}`),
-      database: `app_${id.replace(/-/g, '_')}`.slice(0, 63),
+      database:
+        `${credentials('DATABASE_URL').database}_${id.replace(/-/g, '_')}`.slice(
+          0,
+          63,
+        ),
     };
     instance.ports = portsOf(instance.slot);
     if (!existsSync(instance.worktree)) {
@@ -316,24 +409,19 @@ async function up(name) {
       cwd: instance.worktree,
     });
     createDatabase(instance.database);
-    run('pnpm', ['nx', 'run', 'api:migrate'], { cwd: instance.worktree });
-    run('pnpm', ['nx', 'run', 'api:seed'], { cwd: instance.worktree });
+    for (const target of SETUP) {
+      run('pnpm', ['nx', 'run', target], { cwd: instance.worktree });
+    }
   }
   stopApps(instance);
   for (;;) {
-    const apps = {
-      api: startApp(instance, 'api', [
-        'serve',
-        'api',
-        `--port=${instance.ports.API_DEBUG_PORT}`,
-      ]),
-      web: startApp(instance, 'web', [
-        'serve',
-        'web',
-        `--port=${instance.ports.WEB_PORT}`,
-      ]),
-    };
-    instance.pids = { api: apps.api.pid, web: apps.web.pid };
+    // Each app reads its ports from the instance's .env, like everywhere.
+    const apps = Object.fromEntries(
+      APPS.map((app) => [app, startApp(instance, app, ['serve', app])]),
+    );
+    instance.pids = Object.fromEntries(
+      Object.entries(apps).map(([app, started]) => [app, started.pid]),
+    );
     writeRegistry(registry);
     const result = await waitReady(instance, apps);
     if (result.ok) {
@@ -368,7 +456,7 @@ async function up(name) {
   }
   return finish(
     'ready',
-    `${name} runs at http://localhost:${instance.ports.WEB_PORT}`,
+    `${name} runs: ${Object.values(addresses(instance)).join(', ')}`,
     {
       ...summary(instance),
       movedFromSlots: skipped,
@@ -377,13 +465,19 @@ async function up(name) {
   );
 }
 
+/** Where each app of the instance listens. */
+function addresses(instance) {
+  return Object.fromEntries(
+    APPS.map((app) => [app, `http://localhost:${instance.ports[portOf(app)]}`]),
+  );
+}
+
 function summary(instance) {
   return {
     branch: instance.branch,
     slot: instance.slot,
     worktree: instance.worktree,
-    web: `http://localhost:${instance.ports.WEB_PORT}`,
-    api: `http://localhost:${instance.ports.API_PORT}/api`,
+    apps: addresses(instance),
     database: instance.database,
     valkeyDb: instance.slot,
     running: Object.values(instance.pids ?? {}).some(alive),
@@ -443,25 +537,23 @@ function remove(registry, instance, merged) {
   return 'removed';
 }
 
+/** The state of a branch's pull request; undefined when there is none. */
 function prState(name) {
-  const out = run('gh', [
-    'pr',
-    'list',
-    '--head',
-    name,
-    '--state',
-    'all',
-    '--json',
-    'state',
-    '--limit',
-    '1',
-  ]);
-  return JSON.parse(out)[0]?.state;
+  return pullRequestOf(name, { cwd: MAIN })?.state;
 }
 
 function sweepInstances() {
   const registry = readRegistry();
   const result = { removed: [], closedUnmerged: [], keptDirty: [] };
+  try {
+    prState(Object.keys(registry.instances)[0] ?? 'main');
+  } catch (error) {
+    if (error instanceof GhUnavailable) {
+      // Without gh nothing can be known merged, so nothing is removed.
+      return { ...result, skipped: error.status, reason: error.message };
+    }
+    throw error;
+  }
   for (const instance of Object.values(registry.instances)) {
     const state = prState(instance.branch);
     if (state === 'MERGED') {
@@ -506,7 +598,13 @@ async function main() {
       );
     case 'down': {
       if (!instance) return finish('not-found', `No instance for ${branch}`);
-      const merged = prState(branch) === 'MERGED';
+      let merged = false;
+      try {
+        merged = prState(branch) === 'MERGED';
+      } catch (error) {
+        // Without gh, down falls back to the strict check of unsaved work.
+        if (!(error instanceof GhUnavailable)) throw error;
+      }
       if (merged && hasUncommitted(instance)) {
         return finish(
           'dirty',
@@ -525,6 +623,9 @@ async function main() {
     }
     case 'sweep': {
       const result = sweepInstances();
+      if (result.skipped) {
+        return finish(result.skipped, result.reason, result);
+      }
       return finish(
         'swept',
         `${result.removed.length} removed, ${result.closedUnmerged.length} closed without merge`,

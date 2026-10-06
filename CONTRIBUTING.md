@@ -7,7 +7,9 @@ looks like this: [ADR 0029](docs/adr/0029-feature-workflow.md).
 
 The steps are written for people. [Agent skills](.agents/skills/README.md)
 carry them out for AI agents and follow this document; when the two
-disagree, this document is right and the skill gets fixed.
+disagree, this document is right and the skill gets fixed. With an agent,
+start with the `ship-feature` skill: it finds the current step of a feature
+and leads through the rest.
 
 ## The workflow
 
@@ -51,7 +53,8 @@ Each feature gets its own git worktree, branch, database and ports, so
 several features run side by side with `main` without touching each other.
 The apps run on your machine with Nx, not in Docker, to save resources;
 PostgreSQL, Valkey and the admin panels are shared with the main checkout.
-`pnpm instance up <branch>` does it; see
+The branch is named `<type>/<short-name>`, with a type from Conventional
+Commits, for example `feat/orders`. `pnpm instance up <branch>` does it; see
 [Isolated instance of a branch](docs/development/setup.md#instances).
 
 ### 2. Write the spec
@@ -64,6 +67,9 @@ what is out of scope. The file is not committed.
 
 Split the spec into tasks in `<feature>.todo.md`, also not committed. Each
 task makes sense on its own, names the files to read, and names its test.
+One task is one red-green cycle; split anything bigger. Order them from the
+outside in and back: the `.feature` scenarios first, then the domain, the
+API and the page, so the scenarios turn green last.
 Check which projects the feature touches in
 [the impact of each project](docs/development/impact.md), and plan what each
 of them then needs, such as a migration or translations. Name them in a line

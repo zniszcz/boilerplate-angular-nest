@@ -7,7 +7,15 @@ and a NestJS backend. Fork it when starting a new application.
 
 ## Quick start
 
-Everything in Docker, nothing else to install:
+First copy the one settings file, which every way of running it reads:
+
+```sh
+cp .env.example .env
+```
+
+Everything in Docker, nothing else to install. On macOS and Windows, first
+turn on host networking in Docker Desktop
+([how](docs/development/setup.md#option-a)):
 
 ```sh
 docker compose --profile apps watch
@@ -21,8 +29,8 @@ docker compose up -d
 pnpm dev
 ```
 
-Log in at http://localhost:41000 as `admin@example.com` with the password
-`admin`. Other ways to run it, configuration and ports:
+Log in at http://localhost:41000 with the test account, `SEED_USER_EMAIL`
+and `SEED_USER_PASSWORD` in `.env`. Other ways to run it, configuration and ports:
 [local development setup](docs/development/setup.md).
 
 ## Addresses
@@ -37,10 +45,12 @@ Log in at http://localhost:41000 as `admin@example.com` with the password
 | PostgreSQL   | `localhost:5432`                          | A, B    |
 | Valkey       | `localhost:6379`                          | A, B    |
 
-- Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
-  password and database.
-- Valkey user `app`, password `app`. The `default` user is off, like in the
-  cluster, so connections without a user fail with `NOAUTH`.
+- Adminer login: system `PostgreSQL`, server `postgres`, and the user,
+  password and database from `POSTGRES_USER`, `POSTGRES_PASSWORD` and
+  `POSTGRES_DB` in `.env`.
+- Valkey: the user and password from `VALKEY_USER` and `VALKEY_PASSWORD`.
+  The `default` user is off, like in the cluster, so connections without a
+  user fail with `NOAUTH`.
 - RedisInsight asks you to accept its licence on first open. After that the
   `valkey` connection is on the list, already logged in.
 - These credentials are for local development only.
@@ -64,7 +74,7 @@ mutation testing, also need Docker.
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                                                    |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version                       |
 | `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index, agent skills                          |
-| `pnpm docs:check`                                       | Fails when those lists are out of date or a skill breaks its rules                                      |
+| `pnpm docs:check`                                       | Fails on out-of-date lists, broken links in the docs, or a skill that breaks its rules                  |
 | `pnpm instance up <branch>`                             | Runs a branch in its own worktree, ports and database; see [setup](docs/development/setup.md#instances) |
 | `pnpm skills:link`                                      | Links each skill in `.agents/skills` for Claude Code                                                    |
 | `pnpm format`                                           | Formats all files with Prettier                                                                         |

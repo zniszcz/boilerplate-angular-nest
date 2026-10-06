@@ -19,6 +19,12 @@ export default defineConfig({
     ],
   },
   test: {
+    // A JSON report next to the usual output, for tools that read results,
+    // such as the tdd-check skill. Absolute, like globalSetup in apps/api.
+    reporters: ['default', 'json'],
+    outputFile: {
+      json: `${import.meta.dirname}/../../reports/vitest/api.json`,
+    },
     include: ['test/**/*.spec.ts'],
     environment: 'node',
     // Absolute, so Stryker can run the tests from the repository root.

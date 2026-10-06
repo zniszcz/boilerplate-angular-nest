@@ -28,6 +28,11 @@ if (mode !== 'generate' && mode !== 'check') {
 
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
+// Every rule is checked and every broken one reported, like a linter; the
+// lists are written only when nothing is broken.
+const problems = [];
+const problem = (message) => problems.push(message);
+
 /** The first sentence after the title, as one line without links. */
 function summary(markdown) {
   const paragraph = markdown
@@ -57,15 +62,13 @@ function projects() {
   const rows = projectDirs().map((dir) => {
     const file = join(dir, 'project.json');
     const project = JSON.parse(read(file));
-    let readme;
-    try {
-      readme = read(join(dir, 'README.md'));
-    } catch {
-      throw new Error(`${dir} has no README.md`);
+    if (!existsSync(join(ROOT, dir, 'README.md'))) {
+      problem(`${dir} has no README.md`);
+      return '';
     }
-    const what = summary(readme);
+    const what = summary(read(join(dir, 'README.md')));
     if (!what || what.includes('generated with')) {
-      throw new Error(`${dir}/README.md needs a first paragraph about it`);
+      problem(`${dir}/README.md needs a first paragraph about it`);
     }
     const tags = (project.tags ?? []).map((tag) => `\`${tag}\``).join(' ');
     const link = relative('docs', join(dir, 'README.md'));
@@ -92,10 +95,13 @@ function impact() {
   return projectDirs()
     .map((dir) => {
       const name = JSON.parse(read(join(dir, 'project.json'))).name;
-      const items = impactOf(read(join(dir, 'README.md')));
+      const readme = join(dir, 'README.md');
+      const items = existsSync(join(ROOT, readme))
+        ? impactOf(read(readme))
+        : [];
       if (items.length === 0) {
-        throw new Error(
-          `${dir}/README.md needs a ## Impact section with at least one "- " item`,
+        problem(
+          `${readme} needs a ## Impact section with at least one "- " item`,
         );
       }
       const link = relative('docs/development', join(dir, 'README.md'));
@@ -143,7 +149,8 @@ function adrs() {
 function frontmatter(markdown, file) {
   const block = markdown.match(/^---\n([\s\S]*?)\n---/)?.[1];
   if (!block) {
-    throw new Error(`${file} has no frontmatter`);
+    problem(`${file} has no frontmatter`);
+    return {};
   }
   const field = (key, indent = '') => {
     const match = block.match(
@@ -168,6 +175,45 @@ function frontmatter(markdown, file) {
 
 const KINDS = ['step', 'aggregator'];
 
+/** GitHub's anchor for a heading. */
+const slug = (heading) =>
+  heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .replace(/ /g, '-');
+
+/** Reports a link to a file or heading that is gone, so renaming a step
+ * in CONTRIBUTING.md cannot break skills or docs silently. Code blocks are
+ * examples, not links. */
+function checkLinks(file) {
+  const text = read(file).replace(/```[\s\S]*?```/g, '');
+  for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+    if (/^(https?|mailto):/.test(target)) {
+      continue;
+    }
+    const [path, anchor] = target.split('#');
+    const linked = path ? join(dirname(file), path) : file;
+    if (!existsSync(join(ROOT, linked))) {
+      problem(`${file} links to ${target}, which does not exist`);
+      continue;
+    }
+    if (anchor && linked.endsWith('.md')) {
+      const linkedText = read(linked);
+      const headings = [
+        ...[...linkedText.matchAll(/^#+ (.+)$/gm)].map((match) =>
+          slug(match[1].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')),
+        ),
+        ...[...linkedText.matchAll(/<a id="([^"]+)"/g)].map(
+          (match) => match[1],
+        ),
+      ];
+      if (!headings.includes(anchor)) {
+        problem(`${file} links to ${target}, a heading that does not exist`);
+      }
+    }
+  }
+}
+
 function isLinkTo(path, target) {
   try {
     return (
@@ -190,7 +236,7 @@ function skills() {
   const names = dirs('.agents/skills');
   for (const link of dirs('.claude/skills')) {
     if (!names.includes(link)) {
-      throw new Error(
+      problem(
         `.claude/skills/${link} has no skill in .agents/skills. Remove it.`,
       );
     }
@@ -201,27 +247,25 @@ function skills() {
     const text = read(file);
     const meta = frontmatter(text, file);
     if (meta.name !== name) {
-      throw new Error(`${file}: name must be "${name}", like its folder`);
+      problem(`${file}: name must be "${name}", like its folder`);
     }
     if (!meta.description) {
-      throw new Error(`${file} needs a description`);
+      problem(`${file} needs a description`);
     }
     if (!KINDS.includes(meta.kind)) {
-      throw new Error(`${file} needs metadata.kind: ${KINDS.join(' or ')}`);
+      problem(`${file} needs metadata.kind: ${KINDS.join(' or ')}`);
     }
     if (!isLinkTo(`.claude/skills/${name}`, `../../${dir}`)) {
-      throw new Error(
-        `${dir} is not linked for Claude Code. Run: pnpm skills:link`,
-      );
+      problem(`${dir} is not linked for Claude Code. Run: pnpm skills:link`);
     }
     const contract = text.split(/^## Contract\s*$/m)[1]?.split(/^## /m)[0];
     if (existsSync(join(ROOT, dir, 'scripts')) && !contract) {
-      throw new Error(`${file} has scripts, so it needs a ## Contract section`);
+      problem(`${file} has scripts, so it needs a ## Contract section`);
     }
     const statuses = [...(contract ?? '').matchAll(/^\|\s*(`[^`]+`)/gm)]
       .map((match) => match[1])
       .join(' ');
-    return `| [${name}](${name}/SKILL.md) | ${meta.kind} | ${summary(meta.description)} | ${statuses} |`;
+    return `| [${name}](${name}/SKILL.md) | ${meta.kind} | ${summary(meta.description ?? '')} | ${statuses} |`;
   });
   if (rows.length === 0) {
     return 'No skills yet.';
@@ -240,7 +284,20 @@ const TARGETS = [
   { file: 'docs/development/impact.md', blocks: { impact } },
 ];
 
-let stale = false;
+// Every tracked Markdown file but the ADR template, whose links are
+// placeholders. The skills are among them.
+for (const file of execFileSync('git', ['ls-files', '*.md'], {
+  cwd: ROOT,
+  encoding: 'utf8',
+})
+  .split('\n')
+  .filter((file) => file && file !== 'docs/adr/template.md')) {
+  if (existsSync(join(ROOT, file))) {
+    checkLinks(file);
+  }
+}
+
+const outputs = [];
 for (const { file, blocks } of TARGETS) {
   let text = read(file);
   for (const [name, build] of Object.entries(blocks)) {
@@ -249,30 +306,33 @@ for (const { file, blocks } of TARGETS) {
     const from = text.indexOf(start);
     const to = text.indexOf(end);
     if (from < 0 || to < 0) {
-      throw new Error(`${file} has no ${start} ... ${end} markers`);
+      problem(`${file} has no ${start} ... ${end} markers`);
+      continue;
     }
-    let built;
-    try {
-      built = build();
-    } catch (error) {
-      // One line an agent or a person can act on, not a stack trace.
-      console.error(error.message);
-      process.exit(1);
-    }
-    text = `${text.slice(0, from + start.length)}\n\n${built}\n\n${text.slice(to)}`;
+    text = `${text.slice(0, from + start.length)}\n\n${build()}\n\n${text.slice(to)}`;
   }
   const path = join(ROOT, file);
   const options = await prettier.resolveConfig(path);
   const formatted = await prettier.format(text, { ...options, filepath: path });
-  if (formatted === read(file)) {
-    continue;
+  if (formatted !== read(file)) {
+    outputs.push({ file, path, formatted });
   }
+}
+
+if (problems.length > 0) {
+  // One line each, so an agent or a person can act on every one.
+  for (const message of problems) {
+    console.error(message);
+  }
+  console.error(`${problems.length} problems`);
+  process.exit(1);
+}
+for (const { file, path, formatted } of outputs) {
   if (mode === 'check') {
     console.error(`${file} is out of date. Run: pnpm docs:generate`);
-    stale = true;
   } else {
     writeFileSync(path, formatted);
     console.log(`Updated ${file}`);
   }
 }
-process.exit(stale ? 1 : 0);
+process.exit(mode === 'check' && outputs.length > 0 ? 1 : 0);

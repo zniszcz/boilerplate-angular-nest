@@ -16,7 +16,7 @@ FROM deps AS dev
 # Nx disables its daemon inside Docker, but file watching needs it.
 ENV NX_DAEMON=true
 COPY . .
-EXPOSE 3000
+# The port is API_PORT from the root .env; compose.yaml passes the file in.
 CMD ["pnpm", "nx", "serve", "api"]
 
 # Production build. Nx writes main.js, package.json and a pruned lockfile.

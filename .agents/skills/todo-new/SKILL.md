@@ -13,7 +13,8 @@ metadata:
 Carries out step 3 of [CONTRIBUTING.md](../../../CONTRIBUTING.md#3-plan-the-tasks-and-scan-the-impact).
 
 1. Read `<name>.spec.md` in the root of the worktree. If **Open questions**
-   is not empty, stop and use the `spec-write` skill first.
+   is not empty, stop: the spec is not finished (step 2, the `spec-write`
+   skill).
 2. Scan the impact: read
    [docs/development/impact.md](../../../docs/development/impact.md) and
    decide which projects the feature touches and what each of them then
@@ -27,14 +28,14 @@ Carries out step 3 of [CONTRIBUTING.md](../../../CONTRIBUTING.md#3-plan-the-task
    - `- [ ]` tasks with imperative titles, subtasks one level deep at most;
    - under each task `What:` (what and why, complete on its own), `Read:`
      (files to read, one line each, with why), and for code `Test:`;
+   - tasks in the order and size of
+     [CONTRIBUTING step 3](../../../CONTRIBUTING.md#3-plan-the-tasks-and-scan-the-impact);
    - `Test:` is `<file>.spec.ts :: <test name>` or
      `apps/web-e2e/features/<file>.feature :: <scenario>`, a test that does
      not exist yet and that the task's code will make pass.
-4. Order: the `.feature` scenarios first, then the domain, the API, the
-   page. One task is one red-green cycle; split anything bigger.
-5. Never write "as we agreed" or "see above": each task must make sense to
+4. Never write "as we agreed" or "see above": each task must make sense to
    an agent that saw nothing else.
-6. Check the format with
+5. Check the format with
    `node .agents/skills/todo-next/scripts/todo.mjs check <name>.todo.md`
    and act on the contract below.
 

@@ -41,25 +41,6 @@
       "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
       "executor": "nx:noop"
     },
-    "serve": {
-      "continuous": true,
-      "executor": "@nx/js:node",
-      "defaultConfiguration": "development",
-      "dependsOn": ["build"],
-      "options": {
-        "buildTarget": "api:build",
-        "runBuildTargetDependencies": false,
-        "port": 41003
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "api:build:development"
-        },
-        "production": {
-          "buildTarget": "api:build:production"
-        }
-      }
-    },
     "migrate": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
@@ -93,6 +74,34 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "node dist/apps/api/cleanup.js"
+      }
+    },
+    "dev-server": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api:build:development"
+        },
+        "production": {
+          "buildTarget": "api:build:production"
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run api:dev-server --port=$API_DEBUG_PORT"
+      },
+      "metadata": {
+        "description": "The API with watch, its debugger on API_DEBUG_PORT from the root .env; it listens on API_PORT."
       }
     }
   },

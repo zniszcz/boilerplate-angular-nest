@@ -6,7 +6,7 @@
 // a substring. The last line of stdout is JSON: status, summary, log, data.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 const [mode, ...rest] = process.argv.slice(2);
 const spec = rest.join(' ');
@@ -66,7 +66,16 @@ function vitest(file, name) {
   if (!project) {
     return finish('bad-input', `No Nx project owns ${file}`);
   }
-  const report = join(LOG_DIR, 'vitest.json');
+  const report = configuredReport(project, 'vitest.config.mts', (config) => {
+    const output = config.test?.outputFile;
+    return typeof output === 'string' ? output : output?.json;
+  });
+  if (!report) {
+    return finish(
+      'no-json-report',
+      `${relative(ROOT, project.root)}/vitest.config.mts writes no JSON report (test.outputFile.json)`,
+    );
+  }
   const args = [
     'nx',
     'test',
@@ -74,8 +83,6 @@ function vitest(file, name) {
     '--skip-nx-cache',
     '--',
     relative(project.root, join(ROOT, file)),
-    '--reporter=json',
-    `--outputFile=${report}`,
   ];
   if (name) {
     args.push('-t', name);
@@ -117,27 +124,74 @@ function vitest(file, name) {
   };
 }
 
-function playwright(name) {
-  const report = join(ROOT, 'reports/e2e/results.json');
+/** A report path a project's test config sets, read from the config
+ * itself, so the config stays its only source. Loaded in its own process:
+ * plugins such as playwright-bdd keep state in the environment, which must
+ * not reach the test run. Node strips the types itself. */
+function configuredReport(project, configFile, pick) {
+  if (!existsSync(join(project.root, configFile))) {
+    return undefined;
+  }
+  const config = JSON.parse(
+    execFileSync(
+      'node',
+      [
+        '--no-warnings',
+        '--input-type=module',
+        '-e',
+        `const c = (await import('./${configFile}')).default; console.log(JSON.stringify(c))`,
+      ],
+      { cwd: project.root, encoding: 'utf8' },
+    ),
+  );
+  const file = pick(config);
+  return file ? resolve(project.root, file) : undefined;
+}
+
+async function playwright(file, name) {
+  const project = projectOf(file);
+  if (!project) {
+    return finish('bad-input', `No Nx project owns ${file}`);
+  }
+  const report = configuredReport(
+    project,
+    'playwright.config.ts',
+    (config) =>
+      (config.reporter ?? []).find(
+        (entry) => Array.isArray(entry) && entry[0] === 'json',
+      )?.[1]?.outputFile,
+  );
+  if (!report) {
+    return finish(
+      'no-json-report',
+      `${relative(ROOT, project.root)}/playwright.config.ts has no json reporter with an outputFile`,
+    );
+  }
   if (existsSync(report)) {
     writeFileSync(report, '');
   }
-  const args = ['nx', 'e2e', 'web-e2e', '--skip-nx-cache', '--'];
+  const args = ['nx', 'e2e', project.name, '--skip-nx-cache', '--'];
   if (name) {
     args.push('--grep', name);
   }
   const { out } = run('pnpm', args);
-  if (/missing step definitions/i.test(out)) {
-    return {
-      ran: 0,
-      failed: 1,
-      failures: ['steps are not defined yet'],
-      missingSteps: true,
-    };
-  }
   const text = existsSync(report) ? readFileSync(report, 'utf8') : '';
   if (!text) {
-    return { ran: 0, failed: 0, broken: true };
+    // Playwright did not run: bddgen failed, for example on steps that are
+    // not defined yet, or the build broke.
+    const lines = out
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const errors = lines.filter((line) =>
+      /error|missing|undefined/i.test(line),
+    );
+    return {
+      ran: 0,
+      failed: 0,
+      broken: true,
+      failures: (errors.length > 0 ? errors : lines).slice(0, 3),
+    };
   }
   const { stats, suites } = JSON.parse(text);
   const specs = (suite) => [
@@ -165,7 +219,7 @@ if (!existsSync(join(ROOT, file))) {
   finish('bad-input', `${file} does not exist`, { file });
 }
 const result = file.endsWith('.feature')
-  ? playwright(name)
+  ? await playwright(file, name)
   : file.endsWith('.spec.ts')
     ? vitest(file, name)
     : finish('bad-input', 'Only .spec.ts and .feature files are supported', {
@@ -184,7 +238,7 @@ if (result.broken) {
   }
   finish('still-red', 'The test does not run; see the log', data);
 }
-if (result.ran === 0 && !result.missingSteps) {
+if (result.ran === 0) {
   finish('no-test-found', 'No test matched; check the file and the name', data);
 }
 if (mode === 'red') {

@@ -5,19 +5,6 @@
   "sourceRoot": "apps/storybook/.storybook",
   "tags": ["scope:web", "type:app"],
   "targets": {
-    "storybook": {
-      "executor": "@storybook/angular:start-storybook",
-      "continuous": true,
-      "options": {
-        "port": 41002,
-        "browserTarget": "storybook:build-storybook",
-        "configDir": "apps/storybook/.storybook",
-        "tsConfig": "apps/storybook/tsconfig.json",
-        "styles": ["apps/web/src/styles.css"],
-        "experimentalZoneless": true,
-        "compodoc": false
-      }
-    },
     "build-storybook": {
       "executor": "@storybook/angular:build-storybook",
       "outputs": ["{options.outputDir}"],
@@ -28,6 +15,28 @@
         "styles": ["apps/web/src/styles.css"],
         "experimentalZoneless": true,
         "compodoc": false
+      }
+    },
+    "start": {
+      "executor": "@storybook/angular:start-storybook",
+      "continuous": true,
+      "options": {
+        "browserTarget": "storybook:build-storybook",
+        "configDir": "apps/storybook/.storybook",
+        "tsConfig": "apps/storybook/tsconfig.json",
+        "styles": ["apps/web/src/styles.css"],
+        "experimentalZoneless": true,
+        "compodoc": false
+      }
+    },
+    "storybook": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run storybook:start --port=$STORYBOOK_PORT"
+      },
+      "metadata": {
+        "description": "Storybook on STORYBOOK_PORT from the root .env."
       }
     }
   }
