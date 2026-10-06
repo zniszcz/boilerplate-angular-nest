@@ -71,6 +71,19 @@ export const AuthStore = signalStore(
       patchState(store, { user: null });
     },
 
+    /**
+     * Deletes the logged in user's account; the API removes the cookies.
+     * Rejects with HttpErrorResponse when the API refuses.
+     */
+    async deleteAccount(password: string): Promise<void> {
+      await firstValueFrom(
+        http.delete<SuccessEnvelope<null>>('/api/users/me', {
+          body: { password },
+        }),
+      );
+      patchState(store, { user: null });
+    },
+
     /** Updates the user, for example with fresh permissions after a refresh. */
     setUser(user: UserDto): void {
       patchState(store, { user });

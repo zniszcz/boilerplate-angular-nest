@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { UserList } from './user-list';
 
 const users = [
-  { id: '1', email: 'admin@example.com' },
-  { id: '2', email: 'anna@example.com' },
-  { id: '3', email: 'piotr@example.com' },
+  { id: '1', email: 'admin@example.com', firstLoginAt: '2026-10-01T08:00:00Z' },
+  { id: '2', email: 'anna@example.com', firstLoginAt: '2026-10-05T12:30:00Z' },
+  { id: '3', email: 'piotr@example.com', firstLoginAt: null },
 ];
 
 /** Every organism with data has Loading, Ready and Error stories. */

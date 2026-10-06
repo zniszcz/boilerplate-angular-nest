@@ -20,20 +20,41 @@
   },
   "errors": {
     "AUTH_INVALID_CREDENTIALS": "Invalid email or password",
-    "AUTH_TOO_MANY_ATTEMPTS": "Too many attempts, try again in {{ minutes }} min"
+    "AUTH_TOO_MANY_ATTEMPTS": "Too many attempts, try again in {{ minutes }} min",
+    "USERS_EMAIL_TAKEN": "An account with this email already exists",
+    "USERS_WRONG_PASSWORD": "The password is not correct",
+    "USERS_LAST_ADMIN": "This is the last account that can add users, so it cannot be deleted"
   },
   "common": {
     "loading": "Loading",
     "loadFailed": "Could not load the data",
-    "retry": "Try again"
+    "retry": "Try again",
+    "actionFailed": "Something went wrong, try again"
   },
   "users": {
     "title": "Users",
-    "empty": "No users yet"
+    "empty": "No users yet",
+    "active": "Active",
+    "neverLoggedIn": "Never logged in",
+    "create": {
+      "title": "Add a user",
+      "email": "Email",
+      "submit": "Add user",
+      "created": "Account {{ email }} created. Its password:",
+      "passwordOnce": "Pass it to the user now. It will not be shown again."
+    }
   },
   "notFound": {
     "title": "Page not found",
     "text": "This address leads nowhere. It may have changed or never existed.",
     "home": "Go to the home page"
+  },
+  "account": {
+    "delete": {
+      "title": "Delete your account",
+      "warning": "This cannot be undone. Enter your password to confirm.",
+      "password": "Current password",
+      "submit": "Delete account"
+    }
   }
 }
