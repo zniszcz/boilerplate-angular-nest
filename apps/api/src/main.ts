@@ -1,41 +1,20 @@
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { Logger, ValidationPipe } from '@nestjs/common';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
+import { configureApp, GLOBAL_PREFIX } from './app/configure-app';
 import { logLevelsFromEnv } from './config/log-level';
 import { mediaDirFromEnv } from './config/media-dir';
-import { validationException } from '@boilerplate/api-responses';
-import { EnvelopeExceptionFilter } from './responses/envelope-exception.filter';
-import { EnvelopeInterceptor } from './responses/envelope.interceptor';
 import { createOpenApiDocument } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: logLevelsFromEnv(),
   });
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  // Standard security headers. Its default Content Security Policy also
-  // lets the Swagger UI work.
-  app.use(helmet());
-  app.use(cookieParser());
-  // Rejects bodies with fields the DTO does not declare. Invalid fields
-  // become VALIDATION_ERROR details.
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      exceptionFactory: validationException,
-    }),
-  );
-  // Every response the web app sees has an envelope. See
-  // docs/adr/0012-response-envelope.md.
-  app.useGlobalInterceptors(new EnvelopeInterceptor(app.get(Reflector)));
-  app.useGlobalFilters(new EnvelopeExceptionFilter());
+  const globalPrefix = GLOBAL_PREFIX;
+  configureApp(app);
 
   // Local and test environments only, never on production.
   const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';

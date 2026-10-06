@@ -5,3 +5,5 @@ tmp/
 .angular/
 .env
 *.local
+reports/
+.stryker-tmp/

@@ -27,6 +27,13 @@
       "options": {
         "targetName": "lint"
       }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test",
+        "testMode": "run"
+      }
     }
   ],
   "targetDefaults": {
@@ -43,6 +50,10 @@
         "{workspaceRoot}/eslint.config.mjs",
         "{workspaceRoot}/.prettierrc.json"
       ]
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["default", "^default"]
     }
   },
   "generators": {
