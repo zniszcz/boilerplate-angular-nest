@@ -17,7 +17,7 @@ type Story = StoryObj<MainNav>;
 
 export const OnHome: Story = { args: { items, active: '/' } };
 export const OnUsers: Story = { args: { items, active: '/users' } };
-/** Without users:read the users page is not linked. */
-export const WithoutUsers: Story = {
+/** Not an admin, without users:read: the users page is not linked. */
+export const NotAdmin: Story = {
   args: { items: items.filter((i) => i.path !== '/users'), active: '/' },
 };

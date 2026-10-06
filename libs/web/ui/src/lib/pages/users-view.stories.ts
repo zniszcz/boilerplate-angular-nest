@@ -34,7 +34,7 @@ export const UserCreated: Story = {
 export const Loading: Story = {
   args: { canCreate: true, users: { status: 'loading', value: undefined } },
 };
-/** With users:read only: the list without the form. */
-export const ReadOnly: Story = {
+/** Not an admin, but with users:read: the list without the form. */
+export const NotAdmin: Story = {
   args: { users: { status: 'resolved', value: users } },
 };
