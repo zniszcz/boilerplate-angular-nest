@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
+import { GLOBAL_PREFIX } from './app/configure-app';
 import { createOpenApiDocument } from './swagger';
 
 async function writeOpenApi() {
@@ -11,7 +12,7 @@ async function writeOpenApi() {
     preview: true,
     logger: false,
   });
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix(GLOBAL_PREFIX);
   const file = process.argv[2] ?? 'openapi.json';
   // The folder, such as tmp/, does not exist in a fresh clone.
   mkdirSync(dirname(file), { recursive: true });

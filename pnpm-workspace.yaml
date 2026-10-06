@@ -11,6 +11,12 @@ allowBuilds:
   esbuild: true
   lmdb: true
   msgpackr-extract: true
+  '@swc/core': true
+  # Native speedups of the SSH client in testcontainers, unused: Docker runs
+  # on a local socket.
+  cpu-features: false
+  ssh2: false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - '@angular/common@22.2.1'
   - '@angular/compiler@22.2.1'
