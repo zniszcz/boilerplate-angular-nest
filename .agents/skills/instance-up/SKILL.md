@@ -34,7 +34,7 @@ How instances work: [setup](../../../docs/development/setup.md#instances).
 | `start-failed`  | an app exited; `data.logs` has its output                                        | read the last 30 lines of that app's log, explain the cause to the user, do not change code to fix it unasked                          |
 | `start-timeout` | the apps did not start listening in time                                         | same as `start-failed`                                                                                                                 |
 | `no-free-ports` | every free block has a taken port                                                | show `data.skipped` and ask the user what holds the ports (`ss -ltnp`)                                                                 |
-| `bad-config`    | `INSTANCE_APPS` is empty or an app has no port in `.env.example`; `data.missing` | show the user; fixing the config is their decision ([how](../../../docs/development/setup.md#adding-an-app-to-instances))              |
+| `bad-config`    | `INSTANCE_APPS` is empty or an app has no port in `.env.example`; `data.missing` | show the user; fixing the config is their decision ([how](../../../docs/development/adding-an-app.md#4-ports))                         |
 
 Any other status, no JSON line, or a non-zero exit code: stop, show the user
 the `log` path or the error line, and do not try to fix it.

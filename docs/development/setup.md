@@ -141,28 +141,7 @@ stateDiagram-v2
   runs the targets in `INSTANCE_SETUP` once when it is created. Existing
   instances keep their old `.env` until they are created again.
 
-### Adding an app to instances
-
-Part of [adding an app](adding-an-app.md).
-
-Every app takes its ports from `.env`, never from `project.json`, so the
-same file steers every way of running it. A new app follows the API or the
-web app:
-
-1. Add `<PROJECT>_PORT` at the end of the `# per-instance-ports` block in
-   `.env.example`, for example `ADMIN_PORT` for the project `admin`.
-2. Make its `serve` target listen there:
-   - a backend reads the variable in its code, as `apps/api/src/main.ts`
-     reads `API_PORT`;
-   - a frontend's `serve` target runs its dev server with
-     `--port=$<PROJECT>_PORT`, as `apps/web/project.json` does.
-3. Add the project to `INSTANCE_APPS`, and its one-time targets, such as
-   migrations, to `INSTANCE_SETUP`.
-
-To remove an app, undo the three steps.
-
-- The last line of every command is JSON for scripts and agents. The full
-  log, and each app's output, are in `tmp/instances/` of the main checkout.
+To add an app to instances, see [Adding an app](adding-an-app.md#5-isolated-instances).
 
 <a id="setup"></a>
 
