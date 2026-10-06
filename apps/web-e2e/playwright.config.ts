@@ -20,7 +20,8 @@ export default defineConfig({
   failOnFlakyTests: CI,
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: '../../reports/e2e' }],
+    ['html', { open: 'never', outputFolder: '../../reports/e2e/html' }],
+    ['json', { outputFile: '../../reports/e2e/results.json' }],
   ],
   outputDir: '../../tmp/e2e-results',
   use: {
