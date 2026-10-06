@@ -1,6 +1,7 @@
 // Keeps the lists in the documentation in sync with the repository, so they
 // never go stale: the projects with what their README says, the concepts,
-// the ADR index and the agent skills, whose rules it also checks. Only the
+// the ADR index, the agent skills and the impact of each project, whose
+// rules it also checks. Only the
 // parts between generated markers change.
 //   node scripts/docs.mjs generate   rewrites them
 //   node scripts/docs.mjs check      fails when they are out of date (CI)
@@ -41,16 +42,20 @@ function summary(markdown) {
   return line.match(/^.*?\.(?=\s|$)/)?.[0] ?? line;
 }
 
-function projects() {
-  const files = execFileSync('git', ['ls-files', '*project.json'], {
+function projectDirs() {
+  return execFileSync('git', ['ls-files', '*project.json'], {
     cwd: ROOT,
     encoding: 'utf8',
   })
     .split('\n')
     .filter((file) => file && !file.includes('node_modules'))
-    .sort();
-  const rows = files.map((file) => {
-    const dir = dirname(file);
+    .sort()
+    .map((file) => dirname(file));
+}
+
+function projects() {
+  const rows = projectDirs().map((dir) => {
+    const file = join(dir, 'project.json');
     const project = JSON.parse(read(file));
     let readme;
     try {
@@ -71,6 +76,42 @@ function projects() {
     '| --- | --- | --- |',
     ...rows,
   ].join('\n');
+}
+
+/** The bullets of a README's `## Impact` section, each on one line. */
+function impactOf(markdown) {
+  const section = markdown.split(/^## Impact\s*$/m)[1]?.split(/^## /m)[0];
+  return (section ?? '')
+    .split(/\n(?=- )/)
+    .filter((item) => item.startsWith('- '))
+    .map((item) => item.replace(/\s+/g, ' ').trim());
+}
+
+/** What each project's change needs, from the `## Impact` of its README. */
+function impact() {
+  return projectDirs()
+    .map((dir) => {
+      const name = JSON.parse(read(join(dir, 'project.json'))).name;
+      const items = impactOf(read(join(dir, 'README.md')));
+      if (items.length === 0) {
+        throw new Error(
+          `${dir}/README.md needs a ## Impact section with at least one "- " item`,
+        );
+      }
+      const link = relative('docs/development', join(dir, 'README.md'));
+      // Links in the README are relative to it; make them work from here.
+      const fixed = items.map((item) =>
+        item
+          .replace(/\]\(#([^)]+)\)/g, `](${link}#$1)`)
+          .replace(
+            /\]\((?!https?:|#)([^)]+)\)/g,
+            (_, target) =>
+              `](${relative('docs/development', join(dir, target))})`,
+          ),
+      );
+      return `### [${name}](${link})\n\n${fixed.join('\n')}`;
+    })
+    .join('\n\n');
 }
 
 function concepts() {
@@ -196,6 +237,7 @@ const TARGETS = [
   { file: 'docs/README.md', blocks: { projects, concepts } },
   { file: 'docs/adr/README.md', blocks: { adrs } },
   { file: '.agents/skills/README.md', blocks: { skills } },
+  { file: 'docs/development/impact.md', blocks: { impact } },
 ];
 
 let stale = false;

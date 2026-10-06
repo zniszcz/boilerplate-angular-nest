@@ -137,6 +137,9 @@ switch (command) {
     if (!lines.some((line) => line.startsWith('# '))) {
       problems.push('no # title');
     }
+    if (!lines.some((line) => /^Projects:\s*\S/.test(line))) {
+      problems.push('no "Projects:" line naming the projects the plan touches');
+    }
     if (tasks.length === 0) {
       problems.push('no tasks (- [ ] ...)');
     }

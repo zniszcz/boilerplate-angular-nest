@@ -217,7 +217,8 @@ Topics of one app or library are in its README, listed under
 [Code](#code).
 
 Working on the code: [local setup](development/setup.md),
-[conventions](development/conventions.md) and the
+[conventions](development/conventions.md), the
+[impact of each project](development/impact.md) and the
 [feature workflow](../CONTRIBUTING.md), which
 [agent skills](../.agents/skills/README.md) carry out.
 

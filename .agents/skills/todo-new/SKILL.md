@@ -14,20 +14,27 @@ Carries out step 3 of [CONTRIBUTING.md](../../../CONTRIBUTING.md#3-plan-the-task
 
 1. Read `<name>.spec.md` in the root of the worktree. If **Open questions**
    is not empty, stop and use the `spec-write` skill first.
-2. Write `<name>.todo.md` next to it, in the format of
+2. Scan the impact: read
+   [docs/development/impact.md](../../../docs/development/impact.md) and
+   decide which projects the feature touches and what each of them then
+   needs, such as a migration, translations or a secret. Those needs become
+   tasks. A new decision becomes a task to propose an ADR.
+3. Write `<name>.todo.md` next to it, in the format of
    [the template](references/todo-template.md):
    - a `#` title and one to three sentences of context, naming the spec;
+   - a line `Projects: a, b`, with the Nx names of the projects from the
+     scan; the second scan compares the change with it;
    - `- [ ]` tasks with imperative titles, subtasks one level deep at most;
    - under each task `What:` (what and why, complete on its own), `Read:`
      (files to read, one line each, with why), and for code `Test:`;
    - `Test:` is `<file>.spec.ts :: <test name>` or
      `apps/web-e2e/features/<file>.feature :: <scenario>`, a test that does
      not exist yet and that the task's code will make pass.
-3. Order: the `.feature` scenarios first, then the domain, the API, the
+4. Order: the `.feature` scenarios first, then the domain, the API, the
    page. One task is one red-green cycle; split anything bigger.
-4. Never write "as we agreed" or "see above": each task must make sense to
+5. Never write "as we agreed" or "see above": each task must make sense to
    an agent that saw nothing else.
-5. Check the format with
+6. Check the format with
    `node .agents/skills/todo-next/scripts/todo.mjs check <name>.todo.md`
    and act on the contract below.
 

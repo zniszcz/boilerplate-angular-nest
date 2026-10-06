@@ -51,3 +51,11 @@ from `https://fonts.googleapis.com` (`style-src`), the font files from
 
 The dev server (`pnpm dev`) does not send these headers, so a missing source
 shows up only in the production image.
+
+## Impact
+
+What else a change here needs:
+
+- A new outside source, such as a font, a script or another API, needs the Content Security Policy in `nginx.conf.template` ([ADR 0014](../../docs/adr/0014-strict-content-security-policy.md)).
+- A new page needs a route here, a guard if it needs a permission, and a link in `libs/web/shell`.
+- A new text needs both language files in `public/i18n`.
