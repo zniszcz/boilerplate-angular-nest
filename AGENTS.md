@@ -10,6 +10,9 @@ system fits together, with links to every concept and README:
 - Everything in the repository is in English: code, comments, docs, commit
   messages.
 - Commit messages follow Conventional Commits. Push right after each commit.
+- Pull requests are squash merged, so the pull request title follows
+  Conventional Commits too: it becomes the commit on `main`. See
+  [ADR 0027](docs/adr/0027-squash-merges.md).
 
 ## Before a commit
 
