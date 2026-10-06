@@ -7,7 +7,9 @@ looks like this: [ADR 0029](docs/adr/0029-feature-workflow.md).
 
 The steps are written for people. [Agent skills](.agents/skills/README.md)
 carry them out for AI agents and follow this document; when the two
-disagree, this document is right and the skill gets fixed.
+disagree, this document is right and the skill gets fixed. With an agent,
+start with the `ship-feature` skill: it finds the current step of a feature
+and leads through the rest.
 
 ## The workflow
 
