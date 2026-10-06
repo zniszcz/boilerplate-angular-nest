@@ -15,8 +15,8 @@ and every step waited for the one before it.
   and Storybook, Unit and API tests, Mutation testing, End-to-end. Each
   step has a name that says what it checks. Images wait for all five.
 - **Two workflows run the same jobs** from `checks.yml`, with names that
-  say what they check: **Branch checks** (`ci.yml`) on every push, and
-  **Merge with main** (`merge.yml`) on every pull request, on the branch
+  say what they check: **Check the branch alone** (`ci.yml`) on every push, and
+  **Check the branch works when merged into main** (`merge.yml`) on every pull request, on the branch
   merged with the current `main`. This replaces the fork-only pull request
   runs of [ADR 0024](0024-ci-on-every-branch.md): branches that pass on
   their own can still break together, and with several agents working at
@@ -45,7 +45,7 @@ and every step waited for the one before it.
 
 Rejected: one job with groups in its log, because the graph would still
 show one box. Rejected: requiring branches to be up to date with `main`
-instead of Merge with main, because it needs a manual update of every
+instead of **Check the branch works when merged into main**, because it needs a manual update of every
 branch after each merge.
 
 ## Consequences

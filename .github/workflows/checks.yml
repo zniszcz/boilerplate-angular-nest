@@ -1,5 +1,5 @@
-# The checks of the whole repository, shared by two workflows: Branch checks
-# (ci.yml) runs them on every push to a branch, Merge with main (merge.yml)
+# The checks of the whole repository, shared by two workflows: Check the branch alone
+# (ci.yml) runs them on every push to a branch, Check the branch works when merged into main (merge.yml)
 # on a pull request, against the branch merged with the current main. See
 # docs/adr/0025-ci-jobs-and-caches.md.
 name: Checks
