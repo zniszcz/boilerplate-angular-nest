@@ -5,6 +5,7 @@
 // Without a number, the pull request of the current branch. The last line
 // of stdout is JSON: status, summary, log, data.
 import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 
 const number = process.argv[2];
 
@@ -13,25 +14,36 @@ function finish(status, summary, data = {}) {
   process.exit(0);
 }
 
-const gh = (...args) =>
-  execFileSync('gh', args, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+  encoding: 'utf8',
+}).trim();
+const { gh, GhUnavailable, pullRequestOf } = await import(
+  join(ROOT, 'scripts/gh.mjs')
+);
 
 let pr;
 try {
+  const branch = execFileSync('git', ['branch', '--show-current'], {
+    encoding: 'utf8',
+  }).trim();
+  const target = number ?? pullRequestOf(branch, { cwd: ROOT })?.number;
+  if (!target) {
+    finish('no-pr', `No pull request for ${branch}`);
+  }
   pr = JSON.parse(
-    gh(
+    gh([
       'pr',
       'view',
-      ...(number ? [number] : []),
+      String(target),
       '--json',
       'number,url,state,reviewDecision,statusCheckRollup,comments,reviews,commits',
-    ),
+    ]),
   );
-} catch {
-  finish('no-pr', 'No pull request for this branch');
+} catch (error) {
+  if (error instanceof GhUnavailable) {
+    finish(error.status, error.message);
+  }
+  throw error;
 }
 
 const data = { number: pr.number, url: pr.url };
@@ -43,16 +55,16 @@ if (pr.state === 'CLOSED') {
 }
 
 const lastPush = pr.commits.at(-1)?.committedDate ?? '';
-const repo = gh(
+const repo = gh([
   'repo',
   'view',
   '--json',
   'nameWithOwner',
   '-q',
   '.nameWithOwner',
-).trim();
+]).trim();
 const inline = JSON.parse(
-  gh('api', `repos/${repo}/pulls/${pr.number}/comments`),
+  gh(['api', `repos/${repo}/pulls/${pr.number}/comments`]),
 );
 const newComments = [
   ...pr.comments.map((c) => ({

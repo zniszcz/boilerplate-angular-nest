@@ -15,6 +15,9 @@ const run = (cmd, args, cwd) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 const ROOT = run('git', ['rev-parse', '--show-toplevel']);
+const { GhUnavailable, pullRequestOf } = await import(
+  join(ROOT, 'scripts/gh.mjs')
+);
 const branch = run('git', ['branch', '--show-current'], ROOT);
 const data = { branch, worktree: ROOT };
 
@@ -29,12 +32,15 @@ const lastJson = (out) => JSON.parse(out.split('\n').pop());
 // is left; check it first, because cleanup removes the instance.
 let pr;
 try {
-  pr = JSON.parse(
-    run('gh', ['pr', 'view', '--json', 'number,state,url'], ROOT),
-  );
+  pr = pullRequestOf(branch, { cwd: ROOT });
+} catch (error) {
+  if (error instanceof GhUnavailable) {
+    finish(error.status, error.message);
+  }
+  throw error;
+}
+if (pr) {
   data.pr = pr;
-} catch {
-  pr = undefined;
 }
 if (pr?.state === 'MERGED') {
   finish('cleanup', `#${pr.number} is merged`);

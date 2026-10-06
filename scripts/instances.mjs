@@ -21,6 +21,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { connect } from 'node:net';
+import { GhUnavailable, pullRequestOf } from './gh.mjs';
 import { basename, dirname, join } from 'node:path';
 
 // Starting takes about 15 s; a minute without listening means it hangs.
@@ -536,25 +537,23 @@ function remove(registry, instance, merged) {
   return 'removed';
 }
 
+/** The state of a branch's pull request; undefined when there is none. */
 function prState(name) {
-  const out = run('gh', [
-    'pr',
-    'list',
-    '--head',
-    name,
-    '--state',
-    'all',
-    '--json',
-    'state',
-    '--limit',
-    '1',
-  ]);
-  return JSON.parse(out)[0]?.state;
+  return pullRequestOf(name, { cwd: MAIN })?.state;
 }
 
 function sweepInstances() {
   const registry = readRegistry();
   const result = { removed: [], closedUnmerged: [], keptDirty: [] };
+  try {
+    prState(Object.keys(registry.instances)[0] ?? 'main');
+  } catch (error) {
+    if (error instanceof GhUnavailable) {
+      // Without gh nothing can be known merged, so nothing is removed.
+      return { ...result, skipped: error.status, reason: error.message };
+    }
+    throw error;
+  }
   for (const instance of Object.values(registry.instances)) {
     const state = prState(instance.branch);
     if (state === 'MERGED') {
@@ -599,7 +598,13 @@ async function main() {
       );
     case 'down': {
       if (!instance) return finish('not-found', `No instance for ${branch}`);
-      const merged = prState(branch) === 'MERGED';
+      let merged = false;
+      try {
+        merged = prState(branch) === 'MERGED';
+      } catch (error) {
+        // Without gh, down falls back to the strict check of unsaved work.
+        if (!(error instanceof GhUnavailable)) throw error;
+      }
       if (merged && hasUncommitted(instance)) {
         return finish(
           'dirty',
@@ -618,6 +623,9 @@ async function main() {
     }
     case 'sweep': {
       const result = sweepInstances();
+      if (result.skipped) {
+        return finish(result.skipped, result.reason, result);
+      }
       return finish(
         'swept',
         `${result.removed.length} removed, ${result.closedUnmerged.length} closed without merge`,

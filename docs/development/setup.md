@@ -162,6 +162,7 @@ corepack enable    # provides the pnpm version from package.json
 pnpm install       # installs dependencies and the git hooks
 cp .env.example .env   # the one environment file, see Configuration
 pnpm exec playwright install chromium   # the browser for pnpm e2e
+gh auth login      # GitHub CLI, https://cli.github.com; for pnpm instance and the agent skills
 ```
 
 ## Configuration
