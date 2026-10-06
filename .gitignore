@@ -8,3 +8,6 @@ tmp/
 reports/
 .stryker-tmp/
 .features-gen/
+# Working files of a feature, see docs/adr/0029-feature-workflow.md.
+*.spec.md
+*.todo.md

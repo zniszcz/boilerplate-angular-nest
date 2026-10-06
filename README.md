@@ -63,8 +63,9 @@ mutation testing, also need Docker.
 | `scripts/github-settings.sh`                            | Applies the GitHub settings: squash merges only, branches deleted after merge; once per fork |
 | `pnpm architecture`                                     | Checks DDD layers and cycles with dependency-cruiser                                         |
 | `pnpm versions`                                         | Fails when a dependency in `package.json` has a range instead of an exact version            |
-| `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index                             |
-| `pnpm docs:check`                                       | Fails when those lists are out of date                                                       |
+| `pnpm docs:generate`                                    | Regenerates the lists in the docs: projects, concepts, ADR index, agent skills               |
+| `pnpm docs:check`                                       | Fails when those lists are out of date or a skill breaks its rules                           |
+| `pnpm skills:link`                                      | Links each skill in `.agents/skills` for Claude Code                                         |
 | `pnpm format`                                           | Formats all files with Prettier                                                              |
 | `pnpm format:check`                                     | Checks formatting without changing files                                                     |
 | `pnpm contracts:generate`                               | Regenerates API types in `libs/shared/contracts`                                             |
@@ -77,10 +78,15 @@ mutation testing, also need Docker.
 
 ## Documentation
 
+Building a feature? Start with [CONTRIBUTING.md](CONTRIBUTING.md): the
+recommended workflow, step by step.
+
 | Read                                                     | For                                                |
 | -------------------------------------------------------- | -------------------------------------------------- |
 | [docs/README.md](docs/README.md)                         | architecture: context, building blocks, deployment |
 | [docs/concepts](docs/README.md#8-cross-cutting-concepts) | how login, the API contract and the frontend work  |
 | [docs/adr](docs/adr/README.md)                           | why each decision was made                         |
 | [docs/development](docs/development/conventions.md)      | versions, linting, commit messages                 |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                       | how a feature gets from an idea to `main`          |
 | [AGENTS.md](AGENTS.md)                                   | rules for code, for people and AI agents alike     |
+| [.agents/skills](.agents/skills/README.md)               | skills that carry out the workflow for AI agents   |

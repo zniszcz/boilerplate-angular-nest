@@ -109,6 +109,15 @@ matters more than performance. See
 
   Each diagram node also says in a `%%` comment when it must change.
 
+## Workflow and skills
+
+- A business feature follows [CONTRIBUTING.md](CONTRIBUTING.md). See
+  [ADR 0029](docs/adr/0029-feature-workflow.md).
+- Agent skills live in `.agents/skills/` and follow the documentation, never
+  the other way round. When a skill and a document disagree, fix the skill.
+  How to add one: [.agents/skills](.agents/skills/README.md). Why:
+  [ADR 0028](docs/adr/0028-agent-skills.md).
+
 ## Decisions
 
 - When a design or architectural decision is made during a conversation,

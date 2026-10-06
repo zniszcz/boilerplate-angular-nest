@@ -43,5 +43,7 @@ Generated from the files here by `pnpm docs:generate`.
 | [0025](0025-ci-jobs-and-caches.md)                  | CI in five parallel jobs with caches and a summary                  |
 | [0026](0026-image-retention.md)                     | Keep the 10 newest images and every image tagged prod               |
 | [0027](0027-squash-merges.md)                       | One squashed commit per pull request                                |
+| [0028](0028-agent-skills.md)                        | Agent skills in the open format, steps and aggregators              |
+| [0029](0029-feature-workflow.md)                    | One recommended workflow for business features                      |
 
 <!-- /generated:adrs -->
