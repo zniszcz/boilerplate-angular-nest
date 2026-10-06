@@ -187,7 +187,8 @@ the branch merged with the current `main`. Each run ends with a short
 summary on its page. On `main` Branch checks then builds, tests and pushes only the images of apps that
 changed since the last successful run, to
 `ghcr.io/zniszcz/boilerplate-angular-nest/<app>` with the tags `latest` and
-the commit SHA. Why: [ADR 0019](adr/0019-ci-pipeline.md),
+the commit SHA, keeping the 10 newest versions and any tagged `prod`. Why:
+[ADR 0019](adr/0019-ci-pipeline.md), [ADR 0026](adr/0026-image-retention.md),
 [ADR 0024](adr/0024-ci-on-every-branch.md) and
 [ADR 0025](adr/0025-ci-jobs-and-caches.md).
 
