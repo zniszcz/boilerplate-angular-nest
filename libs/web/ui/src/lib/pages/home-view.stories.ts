@@ -19,6 +19,6 @@ export const Admin: Story = {
     permissions: ['users:read', 'users:create'],
   },
 };
-export const WithoutPermissions: Story = {
+export const NotAdmin: Story = {
   args: { email: 'anna@example.com', permissions: [] },
 };
