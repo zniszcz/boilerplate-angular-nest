@@ -114,7 +114,7 @@ pnpm instance up feat/orders     # create, or start again, and wait until ready
 pnpm instance list               # all instances, their addresses and state
 pnpm instance stop feat/orders   # stop its apps, keep the worktree and data
 pnpm instance down feat/orders   # remove it, unless work would be lost
-pnpm instance sweep              # remove those whose pull request is merged
+pnpm instance sweep              # remove those whose pull request is merged, then pull main
 ```
 
 ```mermaid

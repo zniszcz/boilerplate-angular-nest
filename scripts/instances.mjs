@@ -542,6 +542,37 @@ function prState(name) {
   return pullRequestOf(name, { cwd: MAIN })?.state;
 }
 
+/** Brings the main checkout up to origin/main, when that loses nothing:
+ * it is on main, has no uncommitted changes, and can fast-forward. */
+function refreshMain() {
+  const branch = run('git', ['branch', '--show-current']).trim();
+  if (branch !== 'main') {
+    return {
+      refreshed: false,
+      reason: `the main checkout is on ${branch}, not main`,
+    };
+  }
+  if (run('git', ['status', '--porcelain']).trim() !== '') {
+    return {
+      refreshed: false,
+      reason: 'the main checkout has uncommitted changes',
+    };
+  }
+  try {
+    run('git', ['pull', '--ff-only', '--quiet', 'origin', 'main']);
+  } catch {
+    return {
+      refreshed: false,
+      reason:
+        'main cannot fast-forward to origin/main, or GitHub is unreachable',
+    };
+  }
+  return {
+    refreshed: true,
+    head: run('git', ['rev-parse', '--short', 'HEAD']).trim(),
+  };
+}
+
 function sweepInstances() {
   const registry = readRegistry();
   const result = { removed: [], closedUnmerged: [], keptDirty: [] };
@@ -550,7 +581,12 @@ function sweepInstances() {
   } catch (error) {
     if (error instanceof GhUnavailable) {
       // Without gh nothing can be known merged, so nothing is removed.
-      return { ...result, skipped: error.status, reason: error.message };
+      return {
+        ...result,
+        skipped: error.status,
+        reason: error.message,
+        main: refreshMain(),
+      };
     }
     throw error;
   }
@@ -569,7 +605,7 @@ function sweepInstances() {
       result.closedUnmerged.push(instance.branch);
     }
   }
-  return result;
+  return { ...result, main: refreshMain() };
 }
 
 function hasUncommitted(instance) {
@@ -628,7 +664,7 @@ async function main() {
       }
       return finish(
         'swept',
-        `${result.removed.length} removed, ${result.closedUnmerged.length} closed without merge`,
+        `${result.removed.length} removed, ${result.closedUnmerged.length} closed without merge, main ${result.main.refreshed ? 'refreshed' : 'not refreshed'}`,
         result,
       );
     }
