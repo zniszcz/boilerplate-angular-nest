@@ -11,6 +11,9 @@ export const RESPONSE_CODES = [
   'AUTH_UNAUTHENTICATED',
   'AUTH_REFRESH_REJECTED',
   'AUTH_FORBIDDEN',
+  'USERS_EMAIL_TAKEN',
+  'USERS_WRONG_PASSWORD',
+  'USERS_LAST_ADMIN',
   'ROUTE_NOT_FOUND',
   // The fallback for exceptions nobody designed. Never return it on purpose.
   'UNEXPECTED_ERROR',

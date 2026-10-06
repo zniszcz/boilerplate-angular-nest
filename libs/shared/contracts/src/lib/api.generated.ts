@@ -31,7 +31,11 @@ export interface paths {
     get: operations['UsersController_me'];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * Deletes the logged in user's own account and removes both cookies.
+     *     There is no route to delete another account.
+     */
+    delete: operations['UsersController_deleteOwn'];
     options?: never;
     head?: never;
     patch?: never;
@@ -47,7 +51,11 @@ export interface paths {
     /** All users. Example of a route that needs a permission. */
     get: operations['UsersController_list'];
     put?: never;
-    post?: never;
+    /**
+     * Adds an account without permissions. Its generated password is in this
+     *     response only; pass it to the user.
+     */
+    post: operations['UsersController_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -152,6 +160,23 @@ export interface components {
       email: string;
       /** @description Permission codes, for example `users:read`. */
       permissions: string[];
+      /** @description ISO date of the first login; null for an account never used. */
+      firstLoginAt: string | null;
+    };
+    CreateUserDto: {
+      /**
+       * Format: email
+       * @description Stored in lower case, whatever the case typed.
+       */
+      email: string;
+    };
+    CreatedUserDto: {
+      user: components['schemas']['UserDto'];
+      password: string;
+    };
+    DeleteAccountDto: {
+      /** @description The current password, so an open session alone cannot delete the account. */
+      password: string;
     };
     LoginDto: {
       /** Format: email */
@@ -173,6 +198,9 @@ export interface components {
       | 'AUTH_UNAUTHENTICATED'
       | 'AUTH_REFRESH_REJECTED'
       | 'AUTH_FORBIDDEN'
+      | 'USERS_EMAIL_TAKEN'
+      | 'USERS_WRONG_PASSWORD'
+      | 'USERS_LAST_ADMIN'
       | 'ROUTE_NOT_FOUND'
       | 'UNEXPECTED_ERROR';
     /** @enum {string} */
@@ -307,6 +335,110 @@ export interface operations {
       };
     };
   };
+  UsersController_deleteOwn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeleteAccountDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            /** @enum {unknown|null} */
+            data: null;
+          };
+        };
+      };
+      /** @description `VALIDATION_ERROR`: The body does not match DeleteAccountDto */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "VALIDATION_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_UNAUTHENTICATED`: Missing or expired access token, or the account no longer exists. Refresh the session and repeat */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_UNAUTHENTICATED"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `USERS_WRONG_PASSWORD`: The password is not the current one */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "USERS_WRONG_PASSWORD"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `USERS_LAST_ADMIN`: The account is the last one that can add users */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "USERS_LAST_ADMIN"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   UsersController_list: {
     parameters: {
       query?: never;
@@ -354,6 +486,109 @@ export interface operations {
            * @example {
            *       "status": "error",
            *       "code": "AUTH_FORBIDDEN"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `UNEXPECTED_ERROR`: An error nobody designed. A bug to fix, never returned on purpose */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "UNEXPECTED_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  UsersController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateUserDto'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'success';
+            code: components['schemas']['ResponseCode'];
+            data: components['schemas']['CreatedUserDto'];
+          };
+        };
+      };
+      /** @description `VALIDATION_ERROR`: The body does not match CreateUserDto */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "VALIDATION_ERROR"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_UNAUTHENTICATED`: Missing or expired access token, or the account no longer exists. Refresh the session and repeat */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_UNAUTHENTICATED"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `AUTH_FORBIDDEN`: The user lacks a permission: users:create */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "AUTH_FORBIDDEN"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description `USERS_EMAIL_TAKEN`: An account with this email exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "error",
+           *       "code": "USERS_EMAIL_TAKEN"
            *     }
            */
           'application/json': components['schemas']['ErrorEnvelope'];

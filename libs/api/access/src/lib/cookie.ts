@@ -1,4 +1,4 @@
-import type { CookieOptions } from 'express';
+import type { CookieOptions, Response } from 'express';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   REFRESH_TOKEN_TTL_SECONDS,
@@ -38,4 +38,17 @@ export function refreshTokenCookieOptions(): CookieOptions {
     path: '/api/auth',
     maxAge: REFRESH_TOKEN_TTL_SECONDS * 1000,
   };
+}
+
+/** Removes both token cookies: after logout, a failed refresh or a deleted account. */
+export function clearAuthCookies(response: Response): void {
+  // clearCookie needs the same options as cookie, apart from maxAge.
+  response.clearCookie(ACCESS_TOKEN_COOKIE, {
+    ...accessTokenCookieOptions(),
+    maxAge: undefined,
+  });
+  response.clearCookie(REFRESH_TOKEN_COOKIE, {
+    ...refreshTokenCookieOptions(),
+    maxAge: undefined,
+  });
 }
