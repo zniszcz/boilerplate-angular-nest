@@ -1,14 +1,17 @@
-# Every run checks the whole repository; images are built only for the apps
-# that changed since the last successful run on main. See
-# docs/adr/0019-ci-pipeline.md. Actions are pinned to a commit, with the
+# Every push to any branch checks the whole repository (trunk-based: short
+# branches into main); images are built only on main, for the apps that
+# changed since its last successful run. See docs/adr/0019-ci-pipeline.md
+# and docs/adr/0024-ci-on-every-branch.md. Actions are pinned to a commit, with the
 # release in the comment, like every other dependency.
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
     # Documentation alone changes nothing that runs.
     paths-ignore: ['**/*.md', 'docs/**']
+  # Only for pull requests from forks, whose pushes run no CI here. A pull
+  # request from a branch of this repository is checked by its push run.
   pull_request:
     paths-ignore: ['**/*.md', 'docs/**']
 
@@ -26,6 +29,7 @@ env:
 jobs:
   verify:
     name: Verify the whole repository
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,20 +46,21 @@ jobs:
       - run: pnpm build
       # API tests start PostgreSQL in Docker, which the runner has.
       - run: pnpm test
-      # Results of the last run, so only mutants in changed code run again.
-      # The nightly full run refreshes them. See
+      # Results of the last run, so only mutants in changed code run again:
+      # this branch's latest, or main's on a new branch. Each branch saves
+      # its own; the nightly full run refreshes main's. See
       # docs/adr/0022-mutation-testing.md.
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/mutation/incremental.json
-          key: mutation-${{ github.sha }}
+          key: mutation-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: mutation-
       - run: pnpm mutate
       - if: github.event_name == 'push'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/mutation/incremental.json
-          key: mutation-${{ github.sha }}
+          key: mutation-${{ github.ref_name }}-${{ github.sha }}
       # Scenarios from apps/web-e2e/features on the built apps, in Chromium.
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e

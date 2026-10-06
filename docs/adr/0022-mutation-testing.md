@@ -29,7 +29,8 @@ notices is a rule nobody checks.
   about 7 seconds on a laptop. **Concurrency 3**, so the laptop stays usable.
 - **Where it runs**: in CI on every run, and locally in the git `pre-push`
   hook, not `pre-commit`, so commits stay instant. CI restores the
-  incremental results from the GitHub cache; a full run took over 6 minutes
+  incremental results from the GitHub cache, per branch
+  ([ADR 0024](0024-ci-on-every-branch.md)); a full run took over 6 minutes
   there. Incremental results trust earlier ones for unchanged code, and a
   change elsewhere, such as a migration, could leave one stale, so a
   **nightly full run** (`mutation-nightly.yml`, `--force`) checks every mutant
