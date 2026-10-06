@@ -1,6 +1,9 @@
 import { Component, input } from '@angular/core';
 
-/** The app name, and whatever is projected on the right. */
+/**
+ * The app name, navigation under it (`[headerNav]`) and whatever else is
+ * projected on the right.
+ */
 @Component({
   selector: 'app-header',
   template: `
@@ -10,6 +13,9 @@ import { Component, input } from '@angular/core';
       >
         <span class="font-semibold">{{ title() }}</span>
         <ng-content />
+      </div>
+      <div class="mx-auto w-full max-w-screen-md px-2 pb-2 sm:px-4">
+        <ng-content select="[headerNav]" />
       </div>
     </header>
   `,

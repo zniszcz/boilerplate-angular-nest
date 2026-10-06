@@ -13,6 +13,18 @@ export const appRoutes: Route[] = [
       import('@boilerplate/web-home').then((m) => m.HomePage),
   },
   {
+    path: 'users',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('@boilerplate/web-users').then((m) => m.UsersPage),
+  },
+  {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('@boilerplate/web-account').then((m) => m.AccountPage),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     component: LoginPage,

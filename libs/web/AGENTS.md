@@ -14,6 +14,12 @@ Frontend pages in `libs/web/<feature>` and shared frontend code.
   for parts below the first screen, with the part's skeleton as the
   placeholder and `@loading (after 150ms; minimum 300ms)`. Never defer the
   largest element of the first screen.
+- Every routed page has a view in `libs/web/ui/src/lib/pages`: the whole
+  screen from organisms and templates, data in through inputs, with stories
+  under `Pages/` that show it in the app's layout (`pageFrame`). The page in
+  `libs/web/<feature>` only connects that view to stores and the router.
+- One page per screen. A new feature gets its own page and route, linked in
+  the navigation, instead of joining an existing page.
 - A page only places organisms and templates from `libs/web/ui` and connects
   them to stores. No Tailwind classes, no markup of its own beyond those
   blocks. A missing look is a missing block in `libs/web/ui`, with a story.

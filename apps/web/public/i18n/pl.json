@@ -56,5 +56,10 @@
       "password": "Aktualne hasło",
       "submit": "Usuń konto"
     }
+  },
+  "nav": {
+    "home": "Start",
+    "users": "Użytkownicy",
+    "account": "Konto"
   }
 }
