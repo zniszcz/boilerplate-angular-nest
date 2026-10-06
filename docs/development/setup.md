@@ -106,6 +106,11 @@ Needed for options B and C, and for working on the code: linting, building
 and the git hook that checks commit messages. Requires
 [nvm](https://github.com/nvm-sh/nvm).
 
+Working on the code also needs Docker, in every option: the API tests and
+mutation testing start PostgreSQL in a container, and the `pre-push` hook
+runs them. Option C runs the apps without Docker, but a push needs it. Why
+the tests use a real database: [ADR 0021](../adr/0021-testing-strategy.md).
+
 ```sh
 nvm install        # installs the Node.js version from .nvmrc
 corepack enable    # provides the pnpm version from package.json
