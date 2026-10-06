@@ -73,8 +73,7 @@ pnpm dev
 - `pnpm dev` starts the API and the web app together, both with watchers,
   in one terminal. To run only one of them, use `pnpm nx serve api` or
   `pnpm nx serve web`.
-- The API reads its defaults from `apps/api/.env.serve`, which points at the
-  databases from Docker.
+- The apps read the root `.env`, which points at the databases from Docker.
 - Stop the apps with `Ctrl+C` and the databases with `docker compose down`.
 
 <a id="option-c"></a>
@@ -83,20 +82,15 @@ pnpm dev
 
 Needs the [machine setup](#setup), and a PostgreSQL server and a Valkey (or
 Redis) server you already have. Create a database and a user for the
-project, then point the API at both in `apps/api/.env.serve.local`:
+project, then point the API at both in the root `.env`:
 
 ```sh
-cat > apps/api/.env.serve.local <<'ENV'
 DATABASE_URL=postgres://user:password@localhost:5432/database
 REDIS_URL=redis://user:password@localhost:6379
-ENV
-pnpm dev
 ```
 
 - `pnpm dev` works the same way as in option B.
-- Files ending with `.local` are not committed, so your credentials stay on
-  your machine.
-- Values in `.env.serve.local` override the defaults from `.env.serve`.
+- `.env` is not committed, so your credentials stay on your machine.
 
 <a id="setup"></a>
 
@@ -115,44 +109,30 @@ the tests use a real database: [ADR 0021](../adr/0021-testing-strategy.md).
 nvm install        # installs the Node.js version from .nvmrc
 corepack enable    # provides the pnpm version from package.json
 pnpm install       # installs dependencies and the git hooks
+cp .env.example .env   # the one environment file, see Configuration
 pnpm exec playwright install chromium   # the browser for pnpm e2e
 ```
 
 ## Configuration
 
-| Variable                                | Meaning                                                                           | Default outside Docker       | Default in Docker            |
-| --------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------- | ---------------------------- |
-| `PORT`                                  | API port                                                                          | `3000`                       | `3000`                       |
-| `LOG_LEVEL`                             | `fatal`, `error`, `warn`, `log` (alias `info`), `debug` or `verbose`              | `debug`                      | `debug`                      |
-| `MEDIA_DIR`                             | Directory for media files, the same path as in the cluster when running in Docker | `tmp/media`                  | `/app/media`                 |
-| `DATABASE_URL`                          | PostgreSQL connection string                                                      | Docker database              | Docker database              |
-| `REDIS_URL`                             | Valkey connection string, in the format used by Redis clients                     | Docker Valkey                | Docker Valkey                |
-| `SWAGGER_ENABLED`                       | `true` turns on Swagger at `/api/docs`. Off on production                         | `true`                       | `true`                       |
-| `JWT_SECRET`                            | Key that signs access tokens. Required                                            | local dev key                | local dev key                |
-| `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` | Test account written by the seed command                                          | `admin@example.com`, `admin` | `admin@example.com`, `admin` |
-| `API_PROXY_TARGET`                      | Where the web dev server sends `/api`                                             | `http://localhost:3000`      | `http://api:3000`            |
+One file: `.env` in the repository root, copied from
+[`.env.example`](../../.env.example), which lists every variable with a
+local default and a comment. Docker Compose reads it for the published
+ports, and Nx loads it for every task, such as `nx serve api` or
+`nx run api:migrate`. It is not committed. Inside Docker (option A) the
+apps get their variables from `compose.yaml` instead.
 
-Outside Docker, Nx loads environment files for `nx serve api` in this order,
-and the first value found wins:
-
-1. `apps/api/.env.serve.local` (your overrides, not committed)
-2. `apps/api/.env.serve` (committed defaults)
-3. `.env` in the repository root (not committed)
+A value may use another one, as `DATABASE_URL` uses `POSTGRES_PORT` and
+`POSTGRES_DB`, so changing a port or a database name is one line.
 
 ## Ports
 
 All ports bind to `127.0.0.1`, so they are not reachable from other machines.
-If a port is already taken, for example by another project's database, copy
-`.env.example` to `.env` and change the port there:
+If a port is already taken, for example by another project's database,
+change it in `.env`, for example `POSTGRES_PORT=5442`.
 
-```sh
-cp .env.example .env
-# then set for example POSTGRES_PORT=5442
-```
-
-Docker Compose and the API defaults both read `POSTGRES_PORT` and
-`VALKEY_PORT`, so options A and B keep working without other changes.
-
-The other ports in `.env` change only the ports Docker publishes. To change
-the port of `nx serve api` on your machine, set `PORT` in
-`apps/api/.env.serve.local`.
+The ports between `# per-instance-ports` markers belong to one instance of
+the apps. `pnpm nx serve` uses the defaults of Angular, Storybook and the
+Node.js debugger for the web app (4200), Storybook (4400) and the API
+debugger (9229); the API listens on `API_PORT`. An isolated instance gets
+its own block of these ports.

@@ -63,40 +63,35 @@
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node dist/apps/api/migrate.js",
-        "envFile": "apps/api/.env.serve"
+        "command": "node dist/apps/api/migrate.js"
       }
     },
     "migrate-revert": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node dist/apps/api/migrate.js revert",
-        "envFile": "apps/api/.env.serve"
+        "command": "node dist/apps/api/migrate.js revert"
       }
     },
     "migration-generate": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node apps/api/scripts/migration-generate.mjs",
-        "envFile": "apps/api/.env.serve"
+        "command": "node apps/api/scripts/migration-generate.mjs"
       }
     },
     "seed": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node dist/apps/api/seed.js",
-        "envFile": "apps/api/.env.serve"
+        "command": "node dist/apps/api/seed.js"
       }
     },
     "cleanup": {
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node dist/apps/api/cleanup.js",
-        "envFile": "apps/api/.env.serve"
+        "command": "node dist/apps/api/cleanup.js"
       }
     }
   },
