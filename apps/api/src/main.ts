@@ -30,7 +30,9 @@ async function bootstrap() {
   accessSync(mediaDir, constants.W_OK);
   app.useStaticAssets(mediaDir, { prefix: `/${globalPrefix}/media` });
 
-  const port = process.env.PORT || 3000;
+  // PORT in Docker and the cluster; API_PORT from the root .env, because a
+  // PORT there would also move the web dev server, which Nx starts with it.
+  const port = process.env.PORT || process.env.API_PORT || 3000;
   await app.listen(port);
   Logger.log(
     `Application is running on: http://localhost:${port}/${globalPrefix}`,
