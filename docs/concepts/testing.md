@@ -77,12 +77,12 @@ sequenceDiagram
 
 ## Mutation testing in CI
 
-| Run                               | Mutants checked            | Results cache                   |
-| --------------------------------- | -------------------------- | ------------------------------- |
-| `pnpm mutate` locally, `pre-push` | only those in changed code | `reports/mutation/`, not shared |
-| CI on a pull request              | only those in changed code | restored from the GitHub cache  |
-| CI on a push to `main`            | only those in changed code | restored, then saved            |
-| `mutation-nightly.yml`, 02:00 UTC | all (`--force`)            | saved fresh                     |
+| Run                               | Mutants checked            | Results cache                               |
+| --------------------------------- | -------------------------- | ------------------------------------------- |
+| `pnpm mutate` locally, `pre-push` | only those in changed code | `reports/mutation/`, not shared             |
+| Branch checks, push to any branch | only those in changed code | the branch's own, else `main`'s; then saved |
+| Merge with main, pull request     | only those in changed code | `main`'s, not saved                         |
+| `mutation-nightly.yml`, 02:00 UTC | all (`--force`)            | saved fresh                                 |
 
 The nightly run is started by GitHub's scheduler, from the workflow file on
 `main`, and runs on GitHub's machines. Things to know:

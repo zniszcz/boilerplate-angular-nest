@@ -178,12 +178,18 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 ### CI
 
-GitHub Actions, [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Every
-run checks the whole repository with the same commands as before a commit.
-On `main` it then builds, tests and pushes only the images of apps that
+GitHub Actions. The checks of the whole repository, the same commands as
+before a commit, are in [`checks.yml`](../.github/workflows/checks.yml) and
+run twice: **Branch checks** ([`ci.yml`](../.github/workflows/ci.yml)) on
+every push to a branch, and **Merge with main**
+([`merge.yml`](../.github/workflows/merge.yml)) on a pull request, against
+the branch merged with the current `main`. Each run ends with a short
+summary on its page. On `main` Branch checks then builds, tests and pushes only the images of apps that
 changed since the last successful run, to
 `ghcr.io/zniszcz/boilerplate-angular-nest/<app>` with the tags `latest` and
-the commit SHA. Why: [ADR 0019](adr/0019-ci-pipeline.md).
+the commit SHA. Why: [ADR 0019](adr/0019-ci-pipeline.md),
+[ADR 0024](adr/0024-ci-on-every-branch.md) and
+[ADR 0025](adr/0025-ci-jobs-and-caches.md).
 
 ```sh
 NX_BASE=HEAD~3 node scripts/changed-images.mjs   # which images would build

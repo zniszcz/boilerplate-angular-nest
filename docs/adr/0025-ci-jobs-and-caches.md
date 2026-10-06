@@ -14,6 +14,14 @@ and every step waited for the one before it.
 - **Five jobs side by side, one per kind of check**: Static checks, Build
   and Storybook, Unit and API tests, Mutation testing, End-to-end. Each
   step has a name that says what it checks. Images wait for all five.
+- **Two workflows run the same jobs** from `checks.yml`, with names that
+  say what they check: **Branch checks** (`ci.yml`) on every push, and
+  **Merge with main** (`merge.yml`) on every pull request, on the branch
+  merged with the current `main`. This replaces the fork-only pull request
+  runs of [ADR 0024](0024-ci-on-every-branch.md): branches that pass on
+  their own can still break together, and with several agents working at
+  once that is a real case. Git conflicts need no check; GitHub blocks the
+  merge itself.
 - **One setup** in `.github/actions/setup`: Node.js, pnpm, dependencies from
   the cached pnpm store, and the job's own Nx cache.
 - **Caches**, each restored from the branch's latest or else `main`'s
@@ -32,7 +40,9 @@ and every step waited for the one before it.
   report with traces.
 
 Rejected: one job with groups in its log, because the graph would still
-show one box.
+show one box. Rejected: requiring branches to be up to date with `main`
+instead of Merge with main, because it needs a manual update of every
+branch after each merge.
 
 ## Consequences
 
