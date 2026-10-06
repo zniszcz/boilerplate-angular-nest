@@ -105,6 +105,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push to GHCR
         run: docker push --all-tags "$IMAGE"
+      # Keeps the 10 newest versions and any tagged prod; see the script.
+      - name: Delete old versions from GHCR
+        run: scripts/prune-images.sh ${{ matrix.app }} 10
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # One line about images on the run's page, also on branches, where none
   # are published.
@@ -131,6 +136,8 @@ jobs:
               echo '⚪ Not published: no app changed since the last successful run.'
             else
               icon=$([ "$RESULT" = success ] && echo ✅ || echo ❌)
+              echo 'Older versions beyond the 10 newest are deleted, except any tagged `prod`.'
+              echo
               echo '| | Image | Tags |'
               echo '| --- | --- | --- |'
               for app in $(echo "$APPS" | tr -d '[]"' | tr ',' ' '); do
