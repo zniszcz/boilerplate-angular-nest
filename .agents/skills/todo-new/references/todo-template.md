@@ -4,6 +4,8 @@ Users with `orders:read` see their orders; with `orders:create` they add
 one. Spec: `orders.spec.md`. Backend first, then the page, then the
 end-to-end scenario.
 
+Projects: web-e2e, api-orders, api, contracts, web-orders, web-ui, web-shell
+
 - [ ] Write the end-to-end scenarios
       What: Copy the scenarios of the spec into a new `orders.feature`, word for
       word; they stay red until the last task.

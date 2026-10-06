@@ -64,8 +64,10 @@ what is out of scope. The file is not committed.
 
 Split the spec into tasks in `<feature>.todo.md`, also not committed. Each
 task makes sense on its own, names the files to read, and names its test.
-Check which libraries the feature touches and what each of them requires
-first, and whether it needs a new decision, which gets an ADR.
+Check which projects the feature touches in
+[the impact of each project](docs/development/impact.md), and plan what each
+of them then needs, such as a migration or translations. Name them in a line
+`Projects: a, b` in the task list. A new decision gets an ADR.
 
 ### 4. New environment variables or secrets
 
@@ -107,9 +109,9 @@ The commands in [AGENTS.md](AGENTS.md#before-a-commit).
 
 ### 8. Scan the impact again
 
-Compare the libraries the plan named with those the change really touched
-(`nx affected`). Each surprise is either a missing task or a missing step in
-the plan.
+Compare the projects the plan named with those the change really touched,
+and check the impact notes of each touched project. Each surprise is a
+missing task or a gap in the plan.
 
 ### 9. Update the docs
 
