@@ -9,7 +9,7 @@
       "executor": "@storybook/angular:start-storybook",
       "continuous": true,
       "options": {
-        "port": 4400,
+        "port": 41002,
         "browserTarget": "storybook:build-storybook",
         "configDir": "apps/storybook/.storybook",
         "tsConfig": "apps/storybook/tsconfig.json",

@@ -20,8 +20,9 @@ missing variable or a taken port.
   RedisInsight are the main checkout's containers. An instance has its own
   database `app_<branch>` and its own Valkey database, numbered like its
   slot.
-- **Slots and port blocks.** The main checkout is slot 0 on the usual ports.
-  Slot N has the ten ports from 41000 + 10·N. The variables between
+- **Slots and port blocks.** Slot N has the ten ports from 41000 + 10·N,
+  and the main checkout is slot 0, so the ports of one instance are always
+  next to each other. The variables between
   `# per-instance-ports` markers in `.env.example` get the offsets 0, 1,
   2, … in their order; a new app that runs per instance adds its variable
   at the end.
@@ -39,7 +40,9 @@ missing variable or a taken port.
   whose pull request is merged and only reports those closed without a
   merge. `up` sweeps first, and so does the end of a feature.
 
-Rejected: an instance fully in Docker, because of the memory and images per
+Rejected: keeping the main checkout on Angular's and NestJS's usual ports,
+because its ports would then not form a block like the others. Rejected: an
+instance fully in Docker, because of the memory and images per
 branch. Rejected: a Valkey key prefix per instance, because the code would
 have to remember it. Rejected: a port map in each `project.json`, because
 `.env` stays the one place for local settings. Rejected: regenerating the

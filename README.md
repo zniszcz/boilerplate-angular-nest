@@ -21,21 +21,21 @@ docker compose up -d
 pnpm dev
 ```
 
-Log in at http://localhost:4200 as `admin@example.com` with the password
+Log in at http://localhost:41000 as `admin@example.com` with the password
 `admin`. Other ways to run it, configuration and ports:
 [local development setup](docs/development/setup.md).
 
 ## Addresses
 
-| Service      | Address                                  | Options |
-| ------------ | ---------------------------------------- | ------- |
-| API          | http://localhost:3000/api                | A, B, C |
-| Web          | http://localhost:4200                    | A, B, C |
-| Storybook    | http://localhost:4400 (`pnpm storybook`) | B, C    |
-| Adminer      | http://localhost:8080                    | A, B    |
-| RedisInsight | http://localhost:5540                    | A, B    |
-| PostgreSQL   | `localhost:5432`                         | A, B    |
-| Valkey       | `localhost:6379`                         | A, B    |
+| Service      | Address                                   | Options |
+| ------------ | ----------------------------------------- | ------- |
+| API          | http://localhost:41001/api                | A, B, C |
+| Web          | http://localhost:41000                    | A, B, C |
+| Storybook    | http://localhost:41002 (`pnpm storybook`) | B, C    |
+| Adminer      | http://localhost:8080                     | A, B    |
+| RedisInsight | http://localhost:5540                     | A, B    |
+| PostgreSQL   | `localhost:5432`                          | A, B    |
+| Valkey       | `localhost:6379`                          | A, B    |
 
 - Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
   password and database.
@@ -54,7 +54,7 @@ mutation testing, also need Docker.
 | Command                                                 | What it does                                                                                            |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                                              | Runs the API and the web app with watchers                                                              |
-| `pnpm storybook`                                        | Runs Storybook for the web UI at http://localhost:4400                                                  |
+| `pnpm storybook`                                        | Runs Storybook for the web UI at http://localhost:41002                                                 |
 | `pnpm build`                                            | Builds all apps                                                                                         |
 | `pnpm lint`                                             | Runs ESLint in all projects                                                                             |
 | `pnpm test`                                             | Runs unit and API tests; API tests need Docker                                                          |

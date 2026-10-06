@@ -48,7 +48,8 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "api:build",
-        "runBuildTargetDependencies": false
+        "runBuildTargetDependencies": false,
+        "port": 41003
       },
       "configurations": {
         "development": {

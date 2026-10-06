@@ -16,15 +16,15 @@ cluster.
 
 ## Addresses
 
-| Service      | Address                                  | Options |
-| ------------ | ---------------------------------------- | ------- |
-| API          | http://localhost:3000/api                | A, B, C |
-| Web          | http://localhost:4200                    | A, B, C |
-| Storybook    | http://localhost:4400 (`pnpm storybook`) | B, C    |
-| Adminer      | http://localhost:8080                    | A, B    |
-| RedisInsight | http://localhost:5540                    | A, B    |
-| PostgreSQL   | `localhost:5432`                         | A, B    |
-| Valkey       | `localhost:6379`                         | A, B    |
+| Service      | Address                                   | Options |
+| ------------ | ----------------------------------------- | ------- |
+| API          | http://localhost:41001/api                | A, B, C |
+| Web          | http://localhost:41000                    | A, B, C |
+| Storybook    | http://localhost:41002 (`pnpm storybook`) | B, C    |
+| Adminer      | http://localhost:8080                     | A, B    |
+| RedisInsight | http://localhost:5540                     | A, B    |
+| PostgreSQL   | `localhost:5432`                          | A, B    |
+| Valkey       | `localhost:6379`                          | A, B    |
 
 - Adminer login: system `PostgreSQL`, server `postgres`, and `app` as user,
   password and database.
@@ -128,7 +128,8 @@ stateDiagram-v2
 
 - The worktree is `../<repository>--<branch>`. Work there as in any
   checkout; its `.env` is a copy of the main one with the instance's values.
-- Slot N, from 1 to 3, has the ports from 41000 + 10·N: web +0, API +1,
+- Slot N, from 1 to 3, has the ports from 41000 + 10·N, after the main
+  checkout's 41000: web +0, API +1,
   Storybook +2, API debugger +3, in the order of the
   `# per-instance-ports` block in `.env.example`. To add an app to the
   block, add its port variable at the end of that block; to remove one,
@@ -177,7 +178,8 @@ If a port is already taken, for example by another project's database,
 change it in `.env`, for example `POSTGRES_PORT=5442`.
 
 The ports between `# per-instance-ports` markers belong to one instance of
-the apps. `pnpm nx serve` uses the defaults of Angular, Storybook and the
-Node.js debugger for the web app (4200), Storybook (4400) and the API
-debugger (9229); the API listens on `API_PORT`. An isolated instance gets
-its own block of these ports.
+the apps, in a block of ten: the main checkout has 41000 to 41003, an
+isolated instance in slot N the same offsets from 41000 + 10·N. The web
+dev server, Storybook and the API debugger take their defaults from
+`project.json`, because Nx options cannot read `.env`; keep those equal to
+`.env.example`. The API listens on `API_PORT`.

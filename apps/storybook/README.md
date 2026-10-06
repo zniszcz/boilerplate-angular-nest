@@ -5,7 +5,7 @@ components in `libs/web/helm` (atoms) and `libs/web/ui` (molecules,
 organisms, templates). Stories open at phone width; the viewport menu has the
 Tailwind breakpoints.
 
-- Locally: `pnpm storybook`, at http://localhost:4400.
+- Locally: `pnpm storybook`, at http://localhost:41002.
 - Build: `pnpm nx run storybook:build-storybook`, into `dist/storybook`.
 - Deployed inside the web image under `/storybook/`, served only with
   `STORYBOOK_ENABLED=true`. See
