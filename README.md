@@ -48,6 +48,8 @@ Log in at http://localhost:4200 as `admin@example.com` with the password
 ## Commands
 
 These need the [machine setup](docs/development/setup.md#machine-setup).
+`pnpm test`, `pnpm mutate` and `git push`, whose hook runs mutation testing,
+also need Docker.
 
 | Command                                                 | What it does                                                                      |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------- |
