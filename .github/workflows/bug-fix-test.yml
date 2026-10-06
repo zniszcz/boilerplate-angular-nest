@@ -1,6 +1,6 @@
 # A pull request that closes a `bug` issue must change a test: the fix starts
 # with a test that reproduces the bug. See docs/adr/0021-testing-strategy.md.
-name: Bug fix has a test
+name: Require a test when closing a bug issue
 
 on:
   pull_request:

@@ -3,7 +3,7 @@
 # migration or a dependency, could leave a result stale. This run checks
 # every mutant again and saves fresh results for the next CI runs. See
 # docs/adr/0022-mutation-testing.md.
-name: Mutation testing, full run
+name: Rerun all mutation tests nightly
 
 on:
   schedule:

@@ -180,11 +180,11 @@ scripts/test-prod-images.sh   # builds both prod images and checks them
 
 GitHub Actions. The checks of the whole repository, the same commands as
 before a commit, are in [`checks.yml`](../.github/workflows/checks.yml) and
-run twice: **Branch checks** ([`ci.yml`](../.github/workflows/ci.yml)) on
-every push to a branch, and **Merge with main**
+run twice: **Check the branch alone** ([`ci.yml`](../.github/workflows/ci.yml)) on
+every push to a branch, and **Check the branch works when merged into main**
 ([`merge.yml`](../.github/workflows/merge.yml)) on a pull request, against
 the branch merged with the current `main`. Each run ends with a short
-summary on its page. On `main` Branch checks then builds, tests and pushes only the images of apps that
+summary on its page. On `main`, **Check the branch alone** then builds, tests and pushes only the images of apps that
 changed since the last successful run, to
 `ghcr.io/zniszcz/boilerplate-angular-nest/<app>` with the tags `latest` and
 the commit SHA, keeping the 10 newest versions and any tagged `prod`. Why:

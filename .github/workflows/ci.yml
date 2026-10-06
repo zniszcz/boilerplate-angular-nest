@@ -1,11 +1,11 @@
-# Branch checks: every push to any branch checks the whole repository
+# Check the branch alone: every push to any branch checks the whole repository
 # (trunk-based: short branches into main), with the jobs in checks.yml. On
 # main, images are then built for the apps that changed since its last
 # successful run. The merged result of a pull request is checked by
 # merge.yml. See docs/adr/0019-ci-pipeline.md and
 # docs/adr/0024-ci-on-every-branch.md. Actions are pinned to a commit, with
 # the release in the comment, like every other dependency.
-name: Branch checks
+name: Check the branch alone
 
 on:
   push:
