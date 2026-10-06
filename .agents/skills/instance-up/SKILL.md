@@ -14,9 +14,11 @@ metadata:
 Carries out step 1 of [CONTRIBUTING.md](../../../CONTRIBUTING.md#1-start-an-isolated-instance).
 How instances work: [setup](../../../docs/development/setup.md#instances).
 
-1. Get the branch name from the user or the task, named as
+1. Use the branch the user or the task names; any name works, existing or
+   new. Only when you have to pick a name for a new branch yourself,
+   propose one as
    [CONTRIBUTING.md](../../../CONTRIBUTING.md#1-start-an-isolated-instance)
-   says; ask if unsure.
+   suggests and let the user confirm it.
 2. From the repository root of the main checkout, run
    `pnpm --silent instance up <branch>`.
 3. Read only the last line of the output, a JSON object, and act on
