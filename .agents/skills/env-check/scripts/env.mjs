@@ -3,8 +3,8 @@
 // running the project reads .env, so that is the only place they go
 // locally. See CONTRIBUTING.md, step 4.
 //   node .agents/skills/env-check/scripts/env.mjs [base]
-// The base defaults to the merge base with the remote's default
-// branch. The last line of
+// The base defaults to the merge base with origin/main, not the local
+// main, which may be behind. The last line of
 // stdout is JSON: status, summary, log, data.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -19,18 +19,13 @@ const git = (...args) =>
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
-/** origin's default branch, asking the remote once if git does not know it. */
-function defaultBranch() {
-  const head = () => git('symbolic-ref', '--short', 'refs/remotes/origin/HEAD');
-  try {
-    return head();
-  } catch {
-    git('remote', 'set-head', 'origin', '--auto');
-    return head();
-  }
+// Fresh origin/main first; offline, the last fetched one has to do.
+try {
+  git('fetch', '--quiet', 'origin', 'main');
+} catch {
+  // no network
 }
-
-const base = process.argv[2] ?? git('merge-base', 'HEAD', defaultBranch());
+const base = process.argv[2] ?? git('merge-base', 'HEAD', 'origin/main');
 
 const keys = (text) =>
   new Set([...text.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]));
