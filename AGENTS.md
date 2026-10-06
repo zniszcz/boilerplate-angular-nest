@@ -96,6 +96,9 @@ matters more than performance. See
   `pnpm docs:check`.
 - The first sentence of an app's or library's `README.md` is its description
   in the project list, so keep it a true, specific summary.
+- Its `## Impact` section lists what else a change there needs, and is
+  collected into [docs/development/impact.md](docs/development/impact.md).
+  Every project needs one; add an item when you learn a new consequence.
 - After a change, check whether it changes what `docs/README.md` describes,
   and update it in the same commit:
 

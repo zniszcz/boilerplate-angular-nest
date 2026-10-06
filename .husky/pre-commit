@@ -18,5 +18,6 @@ fi
 # Generated lists in the docs (projects, concepts, ADR index, skills) follow
 # the repository: regenerate them and add them to this commit.
 if pnpm --silent docs:generate | grep -q '^Updated'; then
-  git add docs/README.md docs/adr/README.md .agents/skills/README.md
+  git add docs/README.md docs/adr/README.md .agents/skills/README.md \
+    docs/development/impact.md
 fi

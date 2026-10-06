@@ -53,3 +53,12 @@ Locally they are Nx targets: `pnpm nx run api:migrate`, `api:seed`,
   have an account with a known password. It can run many times.
 - `apps/api/src/database/data-source.ts` is the one database configuration
   for the app, the migrate and seed commands and the TypeORM CLI.
+
+## Impact
+
+What else a change here needs:
+
+- A new environment variable goes to `.env.example`, to the `api` service in `compose.yaml`, and to 1Password if it is a secret.
+- A changed entity needs a migration (see [Adding a migration](#adding-a-migration)).
+- A new or changed route or DTO needs `pnpm contracts:generate`.
+- A new service or outside system changes the diagrams in `docs/README.md`.

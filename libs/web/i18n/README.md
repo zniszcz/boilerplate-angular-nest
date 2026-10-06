@@ -15,3 +15,9 @@ messages. See [ADR 0012](../../../docs/adr/0012-response-envelope.md).
   error envelope.
 - A new language needs a file there and an entry in `LANGUAGES` in
   `apps/web/src/app/i18n.ts`.
+
+## Impact
+
+What else a change here needs:
+
+- A new language needs a file in `apps/web/public/i18n` and an entry in `LANGUAGES` in `apps/web/src/app/i18n.ts`.

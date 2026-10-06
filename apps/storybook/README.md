@@ -12,3 +12,9 @@ Tailwind breakpoints.
   [apps/web/README.md](../web/README.md#storybook).
 - Styles come from `apps/web/src/styles.css`, texts from
   `apps/web/public/i18n`, so stories look like the app.
+
+## Impact
+
+What else a change here needs:
+
+- Stories are found only under `libs/web`; a component elsewhere needs its folder in `stories` in `.storybook/main.ts`.
