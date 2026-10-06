@@ -35,7 +35,10 @@ const keys = (text) =>
   new Set([...text.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]));
 const before = keys(git('show', `${base}:.env.example`));
 const now = keys(readFileSync(join(ROOT, '.env.example'), 'utf8'));
-const compose = readFileSync(join(ROOT, 'compose.yaml'), 'utf8');
+// Only the api service's environment counts: other services' variables,
+// such as the database's own POSTGRES_DB, are not the app's.
+const composeText = readFileSync(join(ROOT, 'compose.yaml'), 'utf8');
+const compose = composeText.match(/^ {2}api:\n((?: {4}.*\n|\n)*)/m)?.[1] ?? '';
 const SECRET = /SECRET|PASSWORD|TOKEN|KEY|PRIVATE|CREDENTIAL/;
 
 const added = [...now]

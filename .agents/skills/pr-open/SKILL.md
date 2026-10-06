@@ -19,7 +19,7 @@ Carries out step 10 of
    sentences), `## What` (a short list), `## Out of scope` from the spec.
    Write for a reviewer who has not seen the conversation.
 3. Pick the title: `<type>: <what it does>`, the way the squash commit on
-   `main` should read.
+   the default branch should read.
 4. Run
    `node .agents/skills/pr-open/scripts/pr.mjs <name> tmp/skills/pr-open/intro.md "<title>"`
    and read only the last line.

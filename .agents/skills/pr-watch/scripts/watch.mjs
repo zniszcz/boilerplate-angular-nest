@@ -73,15 +73,19 @@ const newComments = [
   .filter((c) => c.at > lastPush)
   .map((c) => ({ ...c, body: c.body.slice(0, 300) }));
 
+// Check runs have name and conclusion or status; older status checks
+// have context and state.
 const checks = pr.statusCheckRollup.map((c) => ({
-  name: c.name,
-  state: c.conclusion || c.status,
+  name: c.name ?? c.context,
+  state: c.conclusion || c.state || c.status,
 }));
 const failed = checks.filter((c) =>
-  ['FAILURE', 'CANCELLED', 'TIMED_OUT'].includes(c.state),
+  ['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED'].includes(
+    c.state,
+  ),
 );
 const pending = checks.filter((c) =>
-  ['QUEUED', 'IN_PROGRESS', 'PENDING', 'WAITING'].includes(c.state),
+  ['QUEUED', 'IN_PROGRESS', 'PENDING', 'WAITING', 'EXPECTED'].includes(c.state),
 );
 Object.assign(data, {
   failed: failed.map((c) => c.name),

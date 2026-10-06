@@ -1,7 +1,7 @@
 // Runs a branch as an isolated instance of the apps: its own git worktree
 // next to the main checkout, its own block of ports, its own database on the
-// shared PostgreSQL and its own Valkey database. At most three instances
-// besides the main checkout. See docs/adr/0030-isolated-instances.md.
+// shared PostgreSQL and its own Valkey database. At most INSTANCE_LIMIT
+// instances besides the main checkout. See docs/adr/0030-isolated-instances.md.
 //   node scripts/instances.mjs up <branch>      create or start, then wait
 //   node scripts/instances.mjs stop <branch>    stop its apps, keep the rest
 //   node scripts/instances.mjs down <branch>    remove it, if nothing is lost
@@ -20,6 +20,7 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
+import { connect } from 'node:net';
 import { basename, dirname, join } from 'node:path';
 
 const READY_TIMEOUT_MS = 180_000;
@@ -199,21 +200,25 @@ function startApp(instance, name, args) {
   return { pid: child.pid, file };
 }
 
-async function reachable(url) {
-  try {
-    await fetch(url, { signal: AbortSignal.timeout(2000) });
-    return true;
-  } catch {
-    return false;
-  }
+/** Whether something listens on a local port. */
+function listening(port) {
+  return new Promise((resolve) => {
+    const socket = connect({ port, host: 'localhost' });
+    const done = (result) => {
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(2000);
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+    socket.once('timeout', () => done(false));
+  });
 }
 
 /** Waits for both apps; reports a taken port as soon as a log shows it. */
 async function waitReady(instance, apps) {
-  const urls = {
-    api: `http://localhost:${instance.ports.API_PORT}/api/health/live`,
-    web: `http://localhost:${instance.ports.WEB_PORT}/`,
-  };
+  // Listening on their ports is enough: the logs show anything worse.
+  const ports = [instance.ports.API_PORT, instance.ports.WEB_PORT];
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     for (const [name, app] of Object.entries(apps)) {
@@ -229,7 +234,7 @@ async function waitReady(instance, apps) {
         return { ok: false, reason: 'exited', app: name };
       }
     }
-    const ready = await Promise.all(Object.values(urls).map(reachable));
+    const ready = await Promise.all(ports.map(listening));
     if (ready.every(Boolean)) {
       return { ok: true };
     }
@@ -242,12 +247,31 @@ function compose(args) {
   return run('docker', ['compose', ...args]);
 }
 
+/** The Compose service that publishes a port of the main .env, such as
+ * POSTGRES_PORT, so service names live only in compose.yaml. */
+function serviceOn(variable) {
+  const port = Number(ENV[variable] ?? EXAMPLE[variable]);
+  const services = compose(['ps', '--format', 'json'])
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const service = services.find((s) =>
+    (s.Publishers ?? []).some((p) => p.PublishedPort === port),
+  );
+  if (!service) {
+    throw new Error(
+      `No running Compose service publishes ${variable} (${port}). Run: docker compose up -d`,
+    );
+  }
+  return service.Service;
+}
+
 function createDatabase(name) {
   const { user, database } = credentials('DATABASE_URL');
   const exists = compose([
     'exec',
     '-T',
-    'postgres',
+    serviceOn('POSTGRES_PORT'),
     'psql',
     '-U',
     user,
@@ -257,7 +281,15 @@ function createDatabase(name) {
     `select 1 from pg_database where datname = '${name}'`,
   ]).trim();
   if (exists !== '1') {
-    compose(['exec', '-T', 'postgres', 'createdb', '-U', user, name]);
+    compose([
+      'exec',
+      '-T',
+      serviceOn('POSTGRES_PORT'),
+      'createdb',
+      '-U',
+      user,
+      name,
+    ]);
   }
 }
 
@@ -266,7 +298,7 @@ function dropDatabase(name) {
   compose([
     'exec',
     '-T',
-    'postgres',
+    serviceOn('POSTGRES_PORT'),
     'dropdb',
     '-U',
     user,
@@ -281,7 +313,7 @@ function flushValkey(db) {
   compose([
     'exec',
     '-T',
-    'valkey',
+    serviceOn('VALKEY_PORT'),
     'valkey-cli',
     '--user',
     user,
@@ -323,7 +355,7 @@ async function up(name) {
       return finish(
         'limit-reached',
         `${LIMIT} instances already exist; remove one first`,
-        { instances: summaries(registry), sweep: sweepResult },
+        { limit: LIMIT, instances: summaries(registry), sweep: sweepResult },
       );
     }
     const id = slug(name);
@@ -332,7 +364,11 @@ async function up(name) {
       slug: id,
       slot: freeSlot(registry),
       worktree: join(dirname(MAIN), `${basename(MAIN)}--${id}`),
-      database: `app_${id.replace(/-/g, '_')}`.slice(0, 63),
+      database:
+        `${credentials('DATABASE_URL').database}_${id.replace(/-/g, '_')}`.slice(
+          0,
+          63,
+        ),
     };
     instance.ports = portsOf(instance.slot);
     if (!existsSync(instance.worktree)) {
@@ -417,7 +453,7 @@ function summary(instance) {
     slot: instance.slot,
     worktree: instance.worktree,
     web: `http://localhost:${instance.ports.WEB_PORT}`,
-    api: `http://localhost:${instance.ports.API_PORT}/api`,
+    api: `http://localhost:${instance.ports.API_PORT}`,
     database: instance.database,
     valkeyDb: instance.slot,
     running: Object.values(instance.pids ?? {}).some(alive),

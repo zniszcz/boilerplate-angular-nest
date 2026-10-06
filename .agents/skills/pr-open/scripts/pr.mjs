@@ -38,10 +38,13 @@ try {
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 } catch (error) {
-  const problems = `${error.stdout ?? ''}`
+  // Each problem line ends with the rule's id in brackets, such as
+  // [type-empty]; the ids are commitlint's stable API.
+  const problems = `${error.stdout ?? ''}${error.stderr ?? ''}`
     .split('\n')
-    .filter((line) => line.includes('✖') && !line.includes('found'))
-    .map((line) => line.replace(/^\s*✖\s*/, ''));
+    .map((line) => line.replace(/\x1b\[[0-9;]*m/g, '').trim())
+    .filter((line) => /\[[a-z-]+\]$/.test(line))
+    .map((line) => line.replace(/^\W+/, ''));
   finish('title-invalid', 'The title breaks the commit rules', { problems });
 }
 

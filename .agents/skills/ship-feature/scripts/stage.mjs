@@ -25,26 +25,32 @@ function finish(status, summary) {
 
 const lastJson = (out) => JSON.parse(out.split('\n').pop());
 
-// 1. An instance of this branch that runs.
-const commonDir = run(
-  'git',
-  ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-  ROOT,
-);
-const registry = join(commonDir, 'instances.json');
-const instance = existsSync(registry)
-  ? JSON.parse(readFileSync(registry, 'utf8')).instances[branch]
-  : undefined;
-const running = Object.values(instance?.pids ?? {}).some((pid) => {
-  try {
-    process.kill(-pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-});
-data.instance = instance ? { slot: instance.slot, running } : null;
-if (!instance || !running) {
+// 11–12. A merged or closed pull request ends the feature, whatever else
+// is left; check it first, because cleanup removes the instance.
+let pr;
+try {
+  pr = JSON.parse(
+    run('gh', ['pr', 'view', '--json', 'number,state,url'], ROOT),
+  );
+  data.pr = pr;
+} catch {
+  pr = undefined;
+}
+if (pr?.state === 'MERGED') {
+  finish('cleanup', `#${pr.number} is merged`);
+}
+if (pr?.state === 'CLOSED') {
+  finish('closed', `#${pr.number} was closed without a merge`);
+}
+
+// 1. An instance of this branch that runs, as pnpm instance reports it.
+const instances = lastJson(run('pnpm', ['--silent', 'instance', 'list'], ROOT))
+  .data.instances;
+const instance = instances.find((i) => i.branch === branch);
+data.instance = instance
+  ? { slot: instance.slot, running: instance.running }
+  : null;
+if (!instance?.running) {
   finish(
     'start-instance',
     instance ? 'The instance is stopped' : 'No instance for this branch',
@@ -68,13 +74,15 @@ if (!spec || !existsSync(join(ROOT, spec))) {
 }
 const name = spec.replace(/\.spec\.md$/, '');
 data.name = name;
+// Open questions are the list items under the heading; any other text there
+// is a note, not a question.
 const open = (
   readFileSync(join(ROOT, spec), 'utf8').split(/^## Open questions\s*$/m)[1] ??
   ''
 )
   .split(/^## /m)[0]
   .split('\n')
-  .filter((line) => line.trim() && !/^Must be empty/.test(line.trim()));
+  .filter((line) => /^\s*[-*] \S/.test(line));
 if (open.length > 0) {
   data.openQuestions = open.length;
   finish('write-spec', `${open.length} open questions in the spec`);
@@ -106,20 +114,8 @@ if (next.status === 'all-blocked') {
   finish('blocked', 'Every open task is blocked');
 }
 
-// 10–12. The pull request.
-let pr;
-try {
-  pr = JSON.parse(
-    run('gh', ['pr', 'view', '--json', 'number,state,url'], ROOT),
-  );
-} catch {
+// 10. The pull request, open or not yet there.
+if (!pr) {
   finish('verify', 'All tasks done; verify, then open the pull request');
-}
-data.pr = pr;
-if (pr.state === 'MERGED') {
-  finish('cleanup', `#${pr.number} is merged`);
-}
-if (pr.state === 'CLOSED') {
-  finish('closed', `#${pr.number} was closed without a merge`);
 }
 finish('review', `#${pr.number} is open`);

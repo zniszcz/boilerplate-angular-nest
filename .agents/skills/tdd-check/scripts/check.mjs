@@ -118,26 +118,38 @@ function vitest(file, name) {
 }
 
 function playwright(name) {
-  const report = join(ROOT, 'reports/e2e/results.json');
-  if (existsSync(report)) {
-    writeFileSync(report, '');
-  }
-  const args = ['nx', 'e2e', 'web-e2e', '--skip-nx-cache', '--'];
+  // Our own report file, so the result does not depend on where the
+  // Playwright config writes its reports.
+  const report = join(LOG_DIR, 'playwright.json');
+  writeFileSync(report, '');
+  const args = ['--silent', 'e2e', '--', '--reporter=json'];
   if (name) {
     args.push('--grep', name);
   }
-  const { out } = run('pnpm', args);
-  if (/missing step definitions/i.test(out)) {
+  const { out } = run('pnpm', args, {
+    env: {
+      ...process.env,
+      PLAYWRIGHT_JSON_OUTPUT_FILE: report,
+      PLAYWRIGHT_JSON_OUTPUT_NAME: report,
+    },
+  });
+  const text = readFileSync(report, 'utf8');
+  if (!text) {
+    // Playwright did not run: bddgen failed, for example on steps that are
+    // not defined yet, or the build broke.
+    const lines = out
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const errors = lines.filter((line) =>
+      /error|missing|undefined/i.test(line),
+    );
     return {
       ran: 0,
-      failed: 1,
-      failures: ['steps are not defined yet'],
-      missingSteps: true,
+      failed: 0,
+      broken: true,
+      failures: (errors.length > 0 ? errors : lines).slice(0, 3),
     };
-  }
-  const text = existsSync(report) ? readFileSync(report, 'utf8') : '';
-  if (!text) {
-    return { ran: 0, failed: 0, broken: true };
   }
   const { stats, suites } = JSON.parse(text);
   const specs = (suite) => [
@@ -184,7 +196,7 @@ if (result.broken) {
   }
   finish('still-red', 'The test does not run; see the log', data);
 }
-if (result.ran === 0 && !result.missingSteps) {
+if (result.ran === 0) {
   finish('no-test-found', 'No test matched; check the file and the name', data);
 }
 if (mode === 'red') {

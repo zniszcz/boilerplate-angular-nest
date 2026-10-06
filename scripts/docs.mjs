@@ -168,6 +168,40 @@ function frontmatter(markdown, file) {
 
 const KINDS = ['step', 'aggregator'];
 
+/** GitHub's anchor for a heading. */
+const slug = (heading) =>
+  heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .replace(/ /g, '-');
+
+/** Fails on a link in a skill to a Markdown file or heading that is gone,
+ * so renaming a step in CONTRIBUTING.md cannot break skills silently. */
+function checkLinks(file) {
+  for (const [, target] of read(file).matchAll(/\]\(([^)\s]+)\)/g)) {
+    if (/^https?:/.test(target)) {
+      continue;
+    }
+    const [path, anchor] = target.split('#');
+    const linked = path ? join(dirname(file), path) : file;
+    if (!existsSync(join(ROOT, linked))) {
+      throw new Error(`${file} links to ${target}, which does not exist`);
+    }
+    if (anchor && linked.endsWith('.md')) {
+      const text = read(linked);
+      const headings = [
+        ...[...text.matchAll(/^#+ (.+)$/gm)].map((match) => slug(match[1])),
+        ...[...text.matchAll(/<a id="([^"]+)"/g)].map((match) => match[1]),
+      ];
+      if (!headings.includes(anchor)) {
+        throw new Error(
+          `${file} links to ${target}, a heading that does not exist`,
+        );
+      }
+    }
+  }
+}
+
 function isLinkTo(path, target) {
   try {
     return (
@@ -214,6 +248,7 @@ function skills() {
         `${dir} is not linked for Claude Code. Run: pnpm skills:link`,
       );
     }
+    checkLinks(file);
     const contract = text.split(/^## Contract\s*$/m)[1]?.split(/^## /m)[0];
     if (existsSync(join(ROOT, dir, 'scripts')) && !contract) {
       throw new Error(`${file} has scripts, so it needs a ## Contract section`);

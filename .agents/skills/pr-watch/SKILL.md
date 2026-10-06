@@ -15,8 +15,10 @@ Carries out the second half of step 10 of
 
 Run `node .agents/skills/pr-watch/scripts/watch.mjs [number]` and read only
 the last line. Without a number it takes the current branch's pull request.
-To wait for checks, run `gh pr checks <number> --watch` in the background
-and look again when it ends; do not poll in a loop.
+To wait for checks, run `gh pr checks <number> --watch`, in the background
+if your agent can, and look again when it ends. Without background commands,
+tell the user the checks are running and look again when they ask; do not
+poll in a loop.
 
 ## Contract
 
