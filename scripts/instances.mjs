@@ -23,7 +23,8 @@ import {
 import { connect } from 'node:net';
 import { basename, dirname, join } from 'node:path';
 
-const READY_TIMEOUT_MS = 180_000;
+// Starting takes about 15 s; a minute without listening means it hangs.
+const READY_TIMEOUT_MS = 60_000;
 
 const MAIN = mainCheckout();
 const ENV = readEnv(join(MAIN, '.env'));
