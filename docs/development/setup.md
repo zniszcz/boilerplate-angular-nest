@@ -128,7 +128,7 @@ stateDiagram-v2
 
 - The worktree is `../<repository>--<branch>`. Work there as in any
   checkout; its `.env` is a copy of the main one with the instance's values.
-- Slot N, from 1 to 3, has the ports from 41000 + 10·N, after the main
+- Slot N, from 1 to `INSTANCE_LIMIT` (3 by default), has the ports from 41000 + 10·N, after the main
   checkout's 41000: web +0, API +1,
   Storybook +2, API debugger +3, in the order of the
   `# per-instance-ports` block in `.env.example`. To add an app to the

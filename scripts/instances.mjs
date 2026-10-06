@@ -22,12 +22,14 @@ import {
 } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-const LIMIT = 3;
-const FIRST_PORT = 41000;
-const BLOCK = 10;
 const READY_TIMEOUT_MS = 180_000;
 
 const MAIN = mainCheckout();
+const ENV = readEnv(join(MAIN, '.env'));
+const EXAMPLE = readEnv(join(MAIN, '.env.example'));
+const setting = (name) => Number(ENV[name] ?? EXAMPLE[name]);
+const LIMIT = setting('INSTANCE_LIMIT');
+const BLOCK = setting('INSTANCE_PORT_BLOCK');
 const REGISTRY = join(gitCommonDir(), 'instances.json');
 const LOG_DIR = join(MAIN, 'tmp/instances');
 mkdirSync(LOG_DIR, { recursive: true });
@@ -62,6 +64,33 @@ function run(cmd, args, options = {}) {
     log(`${error.stdout ?? ''}${error.stderr ?? ''}`);
     throw new Error(`${cmd} ${args.slice(0, 3).join(' ')} failed`);
   }
+}
+
+/** A .env file as an object, with `${NAME}` replaced by earlier values. */
+function readEnv(file) {
+  const values = {};
+  if (!existsSync(file)) {
+    return values;
+  }
+  for (const [, name, raw] of readFileSync(file, 'utf8').matchAll(
+    /^([A-Z][A-Z0-9_]*)=(.*)$/gm,
+  )) {
+    values[name] = raw.replace(
+      /\$\{([A-Z0-9_]+)\}/g,
+      (_, ref) => values[ref] ?? '',
+    );
+  }
+  return values;
+}
+
+/** User, password and database of a connection URL in the main .env. */
+function credentials(name) {
+  const url = new URL(ENV[name] ?? EXAMPLE[name]);
+  return {
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database: url.pathname.slice(1),
+  };
 }
 
 function mainCheckout() {
@@ -107,8 +136,10 @@ function portVariables() {
   return [...block[1].matchAll(/^([A-Z0-9_]+)=/gm)].map((match) => match[1]);
 }
 
+/** Slot 0 is the main checkout, on the ports .env.example sets. */
 function portsOf(slot) {
-  const base = FIRST_PORT + slot * BLOCK;
+  const first = Number(EXAMPLE[portVariables()[0]]);
+  const base = first + slot * BLOCK;
   return Object.fromEntries(
     portVariables().map((name, offset) => [name, base + offset]),
   );
@@ -212,31 +243,33 @@ function compose(args) {
 }
 
 function createDatabase(name) {
+  const { user, database } = credentials('DATABASE_URL');
   const exists = compose([
     'exec',
     '-T',
     'postgres',
     'psql',
     '-U',
-    'app',
+    user,
     '-d',
-    'app',
+    database,
     '-Atc',
     `select 1 from pg_database where datname = '${name}'`,
   ]).trim();
   if (exists !== '1') {
-    compose(['exec', '-T', 'postgres', 'createdb', '-U', 'app', name]);
+    compose(['exec', '-T', 'postgres', 'createdb', '-U', user, name]);
   }
 }
 
 function dropDatabase(name) {
+  const { user } = credentials('DATABASE_URL');
   compose([
     'exec',
     '-T',
     'postgres',
     'dropdb',
     '-U',
-    'app',
+    user,
     '--if-exists',
     '--force',
     name,
@@ -244,15 +277,16 @@ function dropDatabase(name) {
 }
 
 function flushValkey(db) {
+  const { user, password } = credentials('REDIS_URL');
   compose([
     'exec',
     '-T',
     'valkey',
     'valkey-cli',
     '--user',
-    'app',
+    user,
     '--pass',
-    'app',
+    password,
     '--no-auth-warning',
     '-n',
     String(db),
