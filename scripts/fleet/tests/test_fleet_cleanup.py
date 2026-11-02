@@ -73,8 +73,9 @@ class Fleet(unittest.TestCase):
         git(self.repo, "commit", "-q", "-m", "init")
 
         self.gates_marker = str(self.base / "tools/gates.sh")
+        # Settings of a fleet or gates run that started these tests must not leak in.
         self.env = {
-            **os.environ,
+            **{k: v for k, v in os.environ.items() if not k.startswith(("FLEET_", "GATES_"))},
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
             "TMPDIR": str(self.tmp),
             "GH_MERGED": str(self.merged),
