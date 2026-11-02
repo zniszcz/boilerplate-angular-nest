@@ -20,7 +20,7 @@ env:
 jobs:
   static:
     name: Static checks
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -38,6 +38,11 @@ jobs:
         run: pnpm contracts:check
       - name: Generated docs lists
         run: pnpm docs:check
+      # Every job must follow vars.CI_RUNNER, see docs/adr/0033-ci-runner-switch.md.
+      - name: Every job uses the runner switch
+        run: scripts/ci-runner.sh check
+      - name: Agent fleet scripts
+        run: python3 -m unittest discover -s scripts/fleet/tests
       - name: Save the Nx cache
         if: always() && github.event_name == 'push'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -47,7 +52,7 @@ jobs:
 
   build:
     name: Build and Storybook
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -66,7 +71,7 @@ jobs:
 
   test:
     name: Unit and API tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -84,7 +89,7 @@ jobs:
 
   mutation:
     name: Mutation testing
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -130,7 +135,7 @@ jobs:
 
   e2e:
     name: End-to-end
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -153,7 +158,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      # Needs sudo and apt, which a self-hosted runner may not give; there
+      # they are installed once, see docs/development/ci-runners.md.
       - name: System libraries for Chromium
+        if: ${{ !vars.CI_RUNNER }}
         run: pnpm exec playwright install-deps chromium
       # Scenarios from apps/web-e2e/features on the built apps.
       - name: Scenarios
@@ -185,7 +193,7 @@ jobs:
     needs: [static, build, test, mutation, e2e]
     # Also after a failure: that is when the summary matters most.
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Results of the other jobs

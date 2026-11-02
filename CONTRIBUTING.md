@@ -9,7 +9,8 @@ The steps are written for people. [Agent skills](.agents/skills/README.md)
 carry them out for AI agents and follow this document; when the two
 disagree, this document is right and the skill gets fixed. With an agent,
 start with the `ship-feature` skill: it finds the current step of a feature
-and leads through the rest.
+and leads through the rest. Several agents at once follow the same steps as an
+[agent fleet](docs/development/agent-fleet.md).
 
 ## The workflow
 

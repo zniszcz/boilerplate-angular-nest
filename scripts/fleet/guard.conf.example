@@ -1,0 +1,7 @@
+# Settings of the manager's guard (fleet-guard.sh). Copy to guard.conf
+# (gitignored) and edit; the guard creates that copy itself when it is missing
+# and re-reads it every round, so a change needs no restart.
+
+# Minutes the manager's screen must stand still before the guard types the
+# wake-up command. Whole minutes, 1 or more.
+GUARD_MINUTES=7

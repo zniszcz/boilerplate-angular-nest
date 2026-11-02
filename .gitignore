@@ -11,3 +11,11 @@ reports/
 # Working files of a feature, see docs/adr/0029-feature-workflow.md.
 *.spec.md
 *.todo.md
+# Agent fleet state, guard settings and stop files, see
+# docs/development/agent-fleet.md.
+.fleet/
+scripts/fleet/guard.conf
+.worktree-slot
+fleet.stop
+fleet.pause
+__pycache__/
