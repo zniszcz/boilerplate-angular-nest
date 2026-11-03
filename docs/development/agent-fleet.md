@@ -182,6 +182,17 @@ work until the time written in it; the manager deletes it after that time.
 The audit lists both first. The guard does not read them and keeps waking
 the manager; an answer without tool calls is then correct.
 
+To shut the fleet down for real, tmux sessions and every process they
+started, use the skill `shutdown-fleet` (`scripts/fleet/fleet-shutdown.sh`,
+`--dry-run` first). It writes `.fleet/resume.md` with the conversation id of
+the manager and of every worker and the commands to come back, and aborts
+without killing anything when a conversation could not be resumed. Then a
+detached process kills the `<name>-manager` and `<name>-fleet` sessions
+with their whole process trees, SIGKILLs survivors and writes
+`.fleet/shutdown-report.txt`. `./resume-manager.sh` brings the manager back;
+it resumes the workers from `resume.md`
+([ADR 0034](../adr/0034-fleet-shutdown.md)).
+
 ## Pool and machine load
 
 - The pool (`.fleet/pool`, default 3) limits all unfinished workers, also
@@ -242,7 +253,8 @@ from what went wrong there:
 | `.agents/skills/manage-fleet/`                    | the manager's skill and the worker and reviewer briefs                      |
 | `.agents/skills/review-project/`, `tmux-handoff/` | the reviewer's skill and handing a step to the human                        |
 | `.claude/agents/docs-research.md`                 | the read-only research agent                                                |
-| `.fleet/` (outside git)                           | worker records, events, log, handover page, research notes                  |
+| `.agents/skills/shutdown-fleet/`                  | shutting the fleet down with a resume file                                  |
+| `.fleet/` (outside git)                           | worker records, events, log, handover page, research notes, `resume.md`     |
 
 The fleet needs a Linux or macOS machine with `tmux`, `git`, `gh`, `python3`
 (standard library only) and Claude Code.

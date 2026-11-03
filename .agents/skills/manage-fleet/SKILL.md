@@ -88,3 +88,6 @@ Number the escalations, one topic per message, with your recommendation.
 - No paid external reviewers; you review.
 - `fleet-kill.sh` kills the worker's whole process tree; never kill only
   `claude`.
+- To shut the whole fleet down when the human asks, use the skill
+  `shutdown-fleet`; after `./resume-manager.sh` brings you back, resume the
+  workers with the commands in `.fleet/resume.md`.
