@@ -195,6 +195,12 @@ the commit SHA, keeping the 10 newest versions and any tagged `prod`. Why:
 [ADR 0024](adr/0024-ci-on-every-branch.md) and
 [ADR 0025](adr/0025-ci-jobs-and-caches.md).
 
+Every job runs on GitHub-hosted `ubuntu-24.04` unless the repository
+variable `CI_RUNNER` names a label of self-hosted runners; the same checks
+also run locally with `scripts/ci-local.sh`. Both are for a private fork
+without free minutes: [CI runners](development/ci-runners.md),
+[ADR 0033](adr/0033-ci-runner-switch.md).
+
 ```sh
 NX_BASE=HEAD~3 node scripts/changed-images.mjs   # which images would build
 scripts/test-prod-images.sh web                  # test one image
@@ -221,7 +227,10 @@ Working on the code: [local setup](development/setup.md),
 [impact of each project](development/impact.md),
 [adding an app](development/adding-an-app.md) and the
 [feature workflow](../CONTRIBUTING.md), which
-[agent skills](../.agents/skills/README.md) carry out.
+[agent skills](../.agents/skills/README.md) carry out. Several agents at
+once: the [agent fleet](development/agent-fleet.md); first things to read:
+[what to read](what-to-read.md); runners for a private fork:
+[CI runners](development/ci-runners.md).
 
 ## 9. Architecture decisions
 

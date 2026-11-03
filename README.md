@@ -33,6 +33,21 @@ Log in at http://localhost:41000 with the test account, `SEED_USER_EMAIL`
 and `SEED_USER_PASSWORD` in `.env`. Other ways to run it, configuration and ports:
 [local development setup](docs/development/setup.md).
 
+### Agent fleet
+
+Several AI agents can work on this repository at once: a manager, workers in
+isolated instances and a reviewer, woken by a guard in tmux. One command
+starts or resumes them; never use `claude --continue` for the manager:
+
+```sh
+./resume-manager.sh
+```
+
+How it works: [Agent fleet](docs/development/agent-fleet.md). What to read
+first: [docs/what-to-read.md](docs/what-to-read.md). CI runs on
+GitHub-hosted runners; a private fork can switch to its own runners or local
+checks: [CI runners](docs/development/ci-runners.md).
+
 ## Addresses
 
 | Service      | Address                                   | Options |

@@ -5,6 +5,25 @@ directory. Why each decision was made: [docs/adr](docs/adr/README.md). How the
 system fits together, with links to every concept and README:
 [docs/README.md](docs/README.md). Read only the document the task needs.
 
+## How to run the project and the agent fleet
+
+When asked how to start the project or the fleet, answer from here:
+
+- **Apps:** the [Quick start](README.md#quick-start) of the README
+  (`cp .env.example .env`, then `docker compose --profile apps watch`, or
+  `docker compose up -d` and `pnpm dev`).
+- **Agent fleet** (manager, workers, reviewer, guard): one command,
+  `./resume-manager.sh` in the repository root. It starts or resumes the tmux
+  session `<name>-manager` and the manager's conversation by its saved id.
+  **Never `claude --continue`**: it resumes the newest conversation in the
+  folder, usually a worker's. Stop: a file `fleet.stop` in the root. Shut
+  the tmux sessions and every fleet process down, with a resume file saying
+  how to come back: the skill `shutdown-fleet`
+  (`scripts/fleet/fleet-shutdown.sh`; by default it lets background work
+  finish, `--force` kills at once; resume file `.fleet/resume.md`). See
+  [Agent fleet](docs/development/agent-fleet.md).
+- **What to read now:** [docs/what-to-read.md](docs/what-to-read.md).
+
 ## Language and commits
 
 - Everything in the repository is in English: code, comments, docs, commit

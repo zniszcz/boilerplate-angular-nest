@@ -1,0 +1,19 @@
+# Local gates of a pull request (scripts/fleet/gates.sh): key|label|command.
+# The same checks as .github/workflows/checks.yml, in its order. Each command
+# runs in a throwaway worktree at the PR's head; FLEET_REPO is the main
+# checkout, FLEET_BASE the merge base. The last line of output goes to the
+# "Detail" column. test, mutate and e2e need Docker.
+install|install|pnpm install --frozen-lockfile --prefer-offline --reporter=silent && cp .env.example .env && echo installed
+versions|exact versions|pnpm versions
+format|formatting|pnpm format:check
+lint|lint|NX_NO_CLOUD=true pnpm lint
+architecture|DDD layers and cycles|pnpm architecture
+contracts|API types match the backend|NX_NO_CLOUD=true pnpm contracts:check
+docs|generated docs lists|pnpm docs:check
+runners|runner switch|scripts/ci-runner.sh check
+build|build|NX_NO_CLOUD=true pnpm build
+storybook|Storybook build|NX_NO_CLOUD=true pnpm nx run storybook:build-storybook
+test|unit and API tests|NX_NO_CLOUD=true pnpm test
+mutation|mutation testing|pnpm mutate
+e2e|end-to-end|pnpm exec playwright install chromium && NX_NO_CLOUD=true pnpm e2e
+fleet|fleet script tests|python3 -m unittest discover -s scripts/fleet/tests 2>&1 | tail -n 1; exit "${PIPESTATUS[0]}"
