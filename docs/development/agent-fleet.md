@@ -187,9 +187,10 @@ started, use the skill `shutdown-fleet` (`scripts/fleet/fleet-shutdown.sh`,
 `--dry-run` first). It writes `.fleet/resume.md` with the conversation id of
 the manager and of every worker and the commands to come back, and aborts
 without killing anything when a conversation could not be resumed. Then a
-detached process kills the `<name>-manager` and `<name>-fleet` sessions
-with their whole process trees, SIGKILLs survivors and writes
-`.fleet/shutdown-report.txt`. `./resume-manager.sh` brings the manager back;
+detached process closes the `<name>-manager` and `<name>-fleet` sessions:
+by default it lets running work (builds, tests, gates) finish on its own for
+up to 30 minutes and kills nothing by force; with `--force` it kills whole
+process trees at once. The report is `.fleet/shutdown-report.txt`. `./resume-manager.sh` brings the manager back;
 it resumes the workers from `resume.md`
 ([ADR 0034](../adr/0034-fleet-shutdown.md)).
 

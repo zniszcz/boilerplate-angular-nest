@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Shut the fleet down so that it can come back: first make sure every Claude
-# conversation in the fleet's tmux sessions can be resumed, then kill those
-# sessions together with every process they started.
+# conversation in the fleet's tmux sessions can be resumed, then close those
+# sessions, by default letting the work they started finish.
 #
 # Step 1, return. For every pane of the manager and fleet sessions the script
 # finds the Claude processes in the pane's process tree and reads their
@@ -11,56 +11,77 @@
 # manager's id and command (resume-manager.sh), and for every worker its id,
 # branch, worktree, uncommitted changes and the exact `claude --resume` command.
 # A Claude process whose id or transcript cannot be found aborts everything:
-# nothing is killed.
+# nothing is stopped.
 #
-# Step 2, kill. The manager usually runs this from inside its own tmux session,
-# so the killing runs as a detached process (setsid, outside every pane) after
+# Step 2, stop. The manager usually runs this from inside its own tmux session,
+# so the stopping runs as a detached process (setsid, outside every pane) after
 # FLEET_SHUTDOWN_DELAY seconds, once the plan and the resume file are written.
-# It sends SIGTERM to the whole tree of every pane, plus any process whose
-# environment still names one of these panes (a build daemon or watcher that
-# left the tree), kills the tmux sessions, waits FLEET_SHUTDOWN_GRACE seconds,
-# SIGKILLs survivors and checks every remembered PID again. The final report,
-# with anything that could not be killed, goes to .fleet/shutdown/report-*.txt
-# and .fleet/shutdown-report.txt; its last line starts with "result:".
+# The processes concerned are the whole tree of every pane plus any process
+# whose environment still names one of these panes (a job that left the tree).
+#
+# Default, gentle: panes are kept open (remain-on-exit) so their terminals do
+# not hang up, Claude and the fleet guard get SIGTERM, and the remaining work
+# (builds, tests, gates, detached jobs) may finish on its own for up to
+# FLEET_SHUTDOWN_WAIT seconds. Idle daemons (FLEET_SHUTDOWN_IDLE: Gradle and
+# Kotlin daemons, watchers, dev servers) are not work. When the work is done,
+# the sessions are killed and the idle daemons get SIGTERM. Nothing gets
+# SIGKILL: what is still alive after the wait is listed in the report and left
+# running, and the sessions stay until a --force run.
+#
+# --force: SIGTERM to everything at once, kill the sessions, SIGKILL survivors
+# after FLEET_SHUTDOWN_GRACE seconds.
+#
+# Both modes check every remembered PID again at the end. The report goes to
+# .fleet/shutdown/report-*.txt and .fleet/shutdown-report.txt; its last line
+# starts with "result:".
 #
 # Sessions: FLEET_MANAGER_SESSION and FLEET_SESSION (fleet.conf, environment
 # wins), so tests run against dummy sessions. Only exact names match.
 #
-# Usage: fleet-shutdown.sh [--dry-run]
+# Usage: fleet-shutdown.sh [--force] [--dry-run]
+#   --force    kill whole process trees at once instead of letting work finish
 #   --dry-run  print the plan (ids, commands, processes) and change nothing
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fleet-lib.sh"
 
-usage() { echo "usage: $0 [--dry-run]"; }
+usage() { echo "usage: $0 [--force] [--dry-run]"; }
 
 # The detached second step re-enters the script.
 if [ "${1:-}" = "--kill-step" ]; then
   MODE=kill
   STAMP="$2"
+  FORCE="$3"
 else
   MODE=plan
   DRY=0
-  case "${1:-}" in
-    "") ;;
-    --dry-run) DRY=1 ;;
-    -h | --help) usage; exit 0 ;;
-    *) usage >&2; exit 2 ;;
-  esac
-  [ $# -le 1 ] || { usage >&2; exit 2; }
+  FORCE=0
+  for arg in "$@"; do
+    case "$arg" in
+      --dry-run) DRY=1 ;;
+      --force) FORCE=1 ;;
+      -h | --help) usage; exit 0 ;;
+      *) usage >&2; exit 2 ;;
+    esac
+  done
   STAMP="$(date '+%Y%m%d-%H%M%S')"
 fi
 
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 DELAY="${FLEET_SHUTDOWN_DELAY:-5}"
 GRACE="${FLEET_SHUTDOWN_GRACE:-5}"
+WAIT="${FLEET_SHUTDOWN_WAIT:-1800}"
+# Long-lived processes that never finish on their own (matched against the
+# command line, extended regex); they and their children are not work to wait for.
+IDLE="${FLEET_SHUTDOWN_IDLE:-GradleDaemon|KotlinCompileDaemon|kotlin-daemon|--watch|[ /]watch( |$)|nodemon|chokidar|vite( |$)|ng serve|nx serve|nx/src/daemon|-t serve|esbuild --service|playwright.*run-server|fleet-guard\.sh}"
+GUARD='fleet-guard\.sh'
 ROOT="$(fleet_root)"
 OUT="$(fleet_dir)/shutdown"
 PID_FILE="$OUT/pids-$STAMP"
 
 # Start time of a process (field 22 of /proc/<pid>/stat), so a PID reused by an
-# unrelated process after the snapshot is never killed. Empty when it is gone.
+# unrelated process after the snapshot is never touched. Empty when it is gone.
 start_time() {
   local stat
   stat="$(cat "/proc/$1/stat" 2>/dev/null)" || return 0
@@ -130,76 +151,165 @@ by_environment() {
   done
 }
 
-# Every PID the shutdown must end: pane trees plus environment matches, minus
-# this process and its own children.
-collect_pids() {
-  local socket ids roots self
-  [ "$#" -gt 0 ] || return 0
-  socket="$(tmux display-message -p -t "=$1" '#{socket_path}' 2>/dev/null || true)"
-  ids="$(panes "$@" | awk '{print $1}' | tr '\n' ' ')"
-  roots="$(panes "$@" | awk '{print $2}' | tr '\n' ' ')"
+# Every live PID of the fleet: pane roots, their trees and environment matches,
+# minus this process and its own children. Works after the panes are gone too,
+# because the roots, pane ids and socket come from the plan.
+scan_pids() {
+  local socket="$1" ids="$2" roots="$3" self
   self=" $$ $(descendants $$ | tr '\n' ' ') "
-  { for r in $roots; do echo "$r"; done; descendants $roots; by_environment "$socket" "$ids"; } \
+  # shellcheck disable=SC2086
+  { for r in $roots; do alive "$r" && echo "$r"; done; [ -z "${roots// /}" ] || descendants $roots; by_environment "$socket" "$ids"; } \
     | sort -un | while read -r pid; do
       case "$self" in *" $pid "*) continue ;; esac
       [ "$pid" -gt 1 ] && echo "$pid"
     done
 }
 
+# "<pid> <class>" for the given PIDs: claude (a conversation), guard (the fleet guard and its
+# children), idle (an idle daemon or below one), root (a pane's own process,
+# usually a shell) or work (everything else, to be waited for).
+classify() {
+  local roots="$1"; shift
+  [ "$#" -gt 0 ] || return 0
+  ps -e -o pid=,ppid=,comm=,args= | IDLE_RE="$IDLE" GUARD_RE="$GUARD" awk -v want=" $* " -v roots=" $roots " '
+    {
+      pid = $1; parent[pid] = $2; comm[pid] = $3
+      line = $0; sub(/^ *[0-9]+ +[0-9]+ +[^ ]+ +/, "", line); args[pid] = line
+    }
+    function has(p, re,   q) {
+      for (q = p; q in args && q > 1; q = parent[q]) if (args[q] ~ re) return 1
+      return 0
+    }
+    END {
+      idle = ENVIRON["IDLE_RE"]; guard = ENVIRON["GUARD_RE"]
+      n = split(want, list, " ")
+      for (i = 1; i <= n; i++) {
+        p = list[i]
+        if (!(p in args)) continue
+        # A conversation is a claude process whose parent is not claude; one
+        # below it (a fork, a subagent) belongs to its work.
+        if (comm[p] == "claude" && comm[parent[p]] != "claude") c = "claude"
+        else if (has(p, guard)) c = "guard"
+        else if (has(p, idle)) c = "idle"
+        else if (index(roots, " " p " ")) c = "root"
+        else c = "work"
+        print p, c
+      }
+    }'
+}
+
 session_field() {
   sed -n "s/.*\"$2\":\"\([^\"]*\)\".*/\1/p" "$1" | head -n 1
 }
 
-# ---------------------------------------------------------------- kill step
+# ---------------------------------------------------------------- stop step
 if [ "$MODE" = kill ]; then
   sleep "$DELAY"
   report="$OUT/report-$STAMP.txt"
   sessions=()
   while read -r s; do [ -n "$s" ] && sessions+=("$s"); done < <(sed -n 's/^session //p' "$PID_FILE")
+  socket="$(sed -n 's/^socket //p' "$PID_FILE")"
+  ids="$(sed -n 's/^pane \([^ ]*\) .*/\1/p' "$PID_FILE" | tr '\n' ' ')"
+  roots="$(sed -n 's/^pane [^ ]* \([0-9]*\)$/\1/p' "$PID_FILE" | tr '\n' ' ')"
   live=()
   for s in "${sessions[@]}"; do tmux has-session -t "=$s" 2>/dev/null && live+=("$s"); done
+
   # The remembered PIDs (still the same processes) plus anything started since.
   declare -A want=()
-  while read -r pid st; do alive "$pid" "$st" && want[$pid]="$st"; done < <(sed -n 's/^pid //p' "$PID_FILE")
-  if [ "${#live[@]}" -gt 0 ]; then
+  refresh() {
+    local pid
     while read -r pid; do
       [ -n "${want[$pid]+x}" ] || want[$pid]="$(start_time "$pid")"
-    done < <(collect_pids "${live[@]}")
-  fi
+    done < <(scan_pids "$socket" "$ids" "$roots")
+  }
+  while read -r pid st; do alive "$pid" "$st" && want[$pid]="$st"; done < <(sed -n 's/^pid //p' "$PID_FILE")
+  refresh
+  living() {
+    local pid
+    for pid in "${!want[@]}"; do alive "$pid" "${want[$pid]}" && echo "$pid"; done
+    return 0
+  }
+  describe() { echo "pid $1 $(ps -o args= -p "$1" 2>/dev/null | cut -c1-120)"; }
+
   {
-    echo "fleet shutdown $STAMP"
+    echo "fleet shutdown $STAMP ($([ "$FORCE" = 1 ] && echo force || echo gentle))"
     echo "sessions: ${sessions[*]}"
-    echo "processes to end: ${#want[@]}"
+    echo "processes found: ${#want[@]}"
   } > "$report"
-  for pid in "${!want[@]}"; do kill -TERM "$pid" 2>/dev/null || true; done
-  for s in "${live[@]}"; do tmux kill-session -t "=$s" 2>/dev/null || true; done
-  for _ in $(seq 1 $((GRACE * 5))); do
-    left=0
-    for pid in "${!want[@]}"; do alive "$pid" "${want[$pid]}" && left=1 && break; done
-    [ "$left" = 0 ] && break
-    sleep 0.2
-  done
-  killed=0
-  for pid in "${!want[@]}"; do
-    if alive "$pid" "${want[$pid]}"; then kill -KILL "$pid" 2>/dev/null || true; killed=$((killed + 1)); fi
-  done
-  sleep 1
-  echo "SIGKILL needed: $killed" >> "$report"
+
   failed=0
-  for pid in "${!want[@]}"; do
-    if alive "$pid" "${want[$pid]}"; then
-      echo "NOT KILLED: pid $pid $(ps -o args= -p "$pid" 2>/dev/null | cut -c1-120)" >> "$report"
+  kept_sessions=0
+  if [ "$FORCE" = 1 ]; then
+    for pid in "${!want[@]}"; do kill -TERM "$pid" 2>/dev/null || true; done
+    for s in "${live[@]}"; do tmux kill-session -t "=$s" 2>/dev/null || true; done
+    for _ in $(seq 1 $((GRACE * 5))); do
+      [ -z "$(living)" ] && break
+      sleep 0.2
+    done
+    refresh
+    killed=0
+    for pid in $(living); do kill -KILL "$pid" 2>/dev/null || true; killed=$((killed + 1)); done
+    sleep 1
+    echo "SIGKILL needed: $killed" >> "$report"
+    for pid in $(living); do
+      echo "NOT KILLED: $(describe "$pid")" >> "$report"
       failed=$((failed + 1))
+    done
+  else
+    # A dead pane keeps its terminal, so the work in it gets no hangup.
+    for s in "${live[@]}"; do
+      tmux list-windows -t "=$s" -F '#{window_id}' 2>/dev/null | while read -r w; do
+        tmux set-option -w -t "$w" remain-on-exit on 2>/dev/null || true
+      done
+    done
+    # shellcheck disable=SC2046
+    while read -r pid class; do
+      case "$class" in claude | guard) kill -TERM "$pid" 2>/dev/null || true ;; esac
+    done < <(classify "$roots" $(living))
+    waited=0
+    work=""
+    while :; do
+      sleep 1
+      waited=$((waited + 1))
+      refresh
+      # shellcheck disable=SC2046
+      work="$(classify "$roots" $(living) | awk '$2 == "work" || $2 == "claude" {print $1}')"
+      [ -z "$work" ] && break
+      [ "$waited" -lt "$WAIT" ] || break
+    done
+    echo "waited for work: ${waited}s of ${WAIT}s" >> "$report"
+    if [ -n "$work" ]; then
+      for pid in $work; do echo "STILL RUNNING (left alone): $(describe "$pid")" >> "$report"; done
+      failed=$(printf '%s\n' "$work" | wc -l)
+      kept_sessions=1
+      echo "kept: tmux sessions ${live[*]} and idle daemons, so the work above is not cut off" >> "$report"
+    else
+      for s in "${live[@]}"; do tmux kill-session -t "=$s" 2>/dev/null || true; done
+      sleep 0.5
+      refresh
+      for pid in $(living); do kill -TERM "$pid" 2>/dev/null || true; done
+      for _ in $(seq 1 $((GRACE * 5))); do
+        [ -z "$(living)" ] && break
+        sleep 0.2
+      done
+      for pid in $(living); do
+        echo "NOT STOPPED (left alone): $(describe "$pid")" >> "$report"
+        failed=$((failed + 1))
+      done
     fi
-  done
-  for s in "${sessions[@]}"; do
-    if tmux has-session -t "=$s" 2>/dev/null; then
-      echo "NOT KILLED: tmux session $s" >> "$report"
-      failed=$((failed + 1))
-    fi
-  done
+  fi
+  if [ "$kept_sessions" = 0 ]; then
+    for s in "${sessions[@]}"; do
+      if tmux has-session -t "=$s" 2>/dev/null; then
+        echo "NOT CLOSED: tmux session $s" >> "$report"
+        failed=$((failed + 1))
+      fi
+    done
+  fi
   if [ "$failed" = 0 ]; then
     echo "result: ok, sessions gone and no remembered process survives" >> "$report"
+  elif [ "$kept_sessions" = 1 ]; then
+    echo "result: WAITING, $failed process(es) still working after ${WAIT}s; left running, run again with --force to kill" >> "$report"
   else
     echo "result: FAILED, $failed item(s) still alive (see above)" >> "$report"
   fi
@@ -218,8 +328,8 @@ fi
 
 problems=()
 resume=""
-declare -A COMM=()
-while read -r pid comm; do COMM[$pid]="$comm"; done < <(ps -e -o pid=,comm=)
+declare -A COMM=() PARENT=()
+while read -r pid ppid comm; do COMM[$pid]="$comm"; PARENT[$pid]="$ppid"; done < <(ps -e -o pid=,ppid=,comm=)
 
 manager_id=""
 saved_id="$(cat "$(fleet_dir)/manager-session" 2>/dev/null || true)"
@@ -227,7 +337,10 @@ saved_id="$(cat "$(fleet_dir)/manager-session" 2>/dev/null || true)"
 while read -r pane_id pane_pid session window; do
   tree="$pane_pid $(descendants "$pane_pid" | tr '\n' ' ')"
   claudes=()
-  for pid in $tree; do [ "${COMM[$pid]:-}" = claude ] && claudes+=("$pid"); done
+  # A claude process below another one is its fork or subagent, not a conversation.
+  for pid in $tree; do
+    [ "${COMM[$pid]:-}" = claude ] && [ "${COMM[${PARENT[$pid]:-0}]:-}" != claude ] && claudes+=("$pid")
+  done
   label="$session:$window ($pane_id)"
   if [ "${#claudes[@]}" -eq 0 ]; then
     resume+=$'\n'"## $label"$'\n\n'"No Claude conversation in this pane; nothing to resume."$'\n'
@@ -284,20 +397,31 @@ while read -r pane_id pane_pid session window; do
 done < <(panes "${SESSIONS[@]}")
 
 if [ "${#problems[@]}" -gt 0 ]; then
-  echo "ABORTED: cannot make sure every conversation can be resumed; nothing was killed." >&2
+  echo "ABORTED: cannot make sure every conversation can be resumed; nothing was stopped." >&2
   printf '  - %s\n' "${problems[@]}" >&2
   exit 1
 fi
 
-mapfile -t PIDS < <(collect_pids "${SESSIONS[@]}")
-doc="# Fleet shutdown $STAMP"$'\n\n'"Sessions: ${SESSIONS[*]}. Bring the manager back first; it resumes the workers' work from .fleet/."$'\n'"$resume"
+SOCKET="$(tmux display-message -p -t "=${SESSIONS[0]}" '#{socket_path}' 2>/dev/null || true)"
+PANE_IDS="$(panes "${SESSIONS[@]}" | awk '{print $1}' | tr '\n' ' ')"
+PANE_ROOTS="$(panes "${SESSIONS[@]}" | awk '{print $2}' | tr '\n' ' ')"
+mapfile -t PIDS < <(scan_pids "$SOCKET" "$PANE_IDS" "$PANE_ROOTS")
+if [ "$FORCE" = 1 ]; then
+  how="force: kill whole process trees at once, SIGKILL survivors after ${GRACE}s"
+else
+  how="gentle: SIGTERM to Claude and the guard, let work finish for up to ${WAIT}s, then close the sessions and stop idle daemons; nothing gets SIGKILL"
+fi
+doc="# Fleet shutdown $STAMP"$'\n\n'"Sessions: ${SESSIONS[*]}. Mode: $how."$'\n'"Bring the manager back first; it resumes the workers' work from .fleet/."$'\n'"$resume"
 
 if [ "$DRY" = 1 ]; then
-  echo "DRY RUN: nothing written, nothing killed."
+  echo "DRY RUN: nothing written, nothing stopped."
   printf '%s\n' "$doc"
   echo
-  echo "Would kill sessions ${SESSIONS[*]} and ${#PIDS[@]} process(es):"
-  for pid in "${PIDS[@]}"; do echo "  $pid $(ps -o args= -p "$pid" 2>/dev/null | cut -c1-100)"; done
+  echo "Would stop sessions ${SESSIONS[*]} and ${#PIDS[@]} process(es) (class: claude, guard, idle, root, work):"
+  # shellcheck disable=SC2068
+  classify "$PANE_ROOTS" ${PIDS[@]} | while read -r pid class; do
+    echo "  $pid $class $(ps -o args= -p "$pid" 2>/dev/null | cut -c1-100)"
+  done
   exit 0
 fi
 
@@ -308,18 +432,20 @@ cp "$OUT/resume-$STAMP.md" "$(fleet_dir)/resume.md"
 [ -z "$manager_id" ] || echo "$manager_id" > "$(fleet_dir)/manager-session"
 {
   for s in "${SESSIONS[@]}"; do echo "session $s"; done
+  echo "socket $SOCKET"
+  panes "${SESSIONS[@]}" | awk '{print "pane", $1, $2}'
   for pid in "${PIDS[@]}"; do st="$(start_time "$pid")"; [ -n "$st" ] && echo "pid $pid $st"; done
 } > "$PID_FILE"
 rm -f "$(fleet_dir)/shutdown-report.txt"
-fleet_log "shutdown $STAMP planned: sessions ${SESSIONS[*]}, ${#PIDS[@]} processes"
+fleet_log "shutdown $STAMP planned ($([ "$FORCE" = 1 ] && echo force || echo gentle)): sessions ${SESSIONS[*]}, ${#PIDS[@]} processes"
 
 printf '%s\n' "$doc"
 echo
 echo "Resume file: $(fleet_dir)/resume.md"
-echo "Killing ${SESSIONS[*]} and ${#PIDS[@]} process(es) in ${DELAY}s from a detached process."
+echo "Stopping ${SESSIONS[*]} and ${#PIDS[@]} process(es) in ${DELAY}s from a detached process."
 echo "Final report: $(fleet_dir)/shutdown-report.txt (last line starts with \"result:\")."
-# Double fork plus setsid: the killer leaves this pane's process tree and its
-# tmux variables, so killing the session does not take it down mid-way.
-( env -u TMUX -u TMUX_PANE setsid nohup "$SCRIPT_DIR/fleet-shutdown.sh" --kill-step "$STAMP" \
+# Double fork plus setsid: the stopper leaves this pane's process tree and its
+# tmux variables, so closing the session does not take it down mid-way.
+( env -u TMUX -u TMUX_PANE setsid nohup "$SCRIPT_DIR/fleet-shutdown.sh" --kill-step "$STAMP" "$FORCE" \
     > "$OUT/kill-$STAMP.log" 2>&1 < /dev/null & )
 exit 0

@@ -19,7 +19,8 @@ When asked how to start the project or the fleet, answer from here:
   folder, usually a worker's. Stop: a file `fleet.stop` in the root. Shut
   the tmux sessions and every fleet process down, with a resume file saying
   how to come back: the skill `shutdown-fleet`
-  (`scripts/fleet/fleet-shutdown.sh`, resume file `.fleet/resume.md`). See
+  (`scripts/fleet/fleet-shutdown.sh`; by default it lets background work
+  finish, `--force` kills at once; resume file `.fleet/resume.md`). See
   [Agent fleet](docs/development/agent-fleet.md).
 - **What to read now:** [docs/what-to-read.md](docs/what-to-read.md).
 

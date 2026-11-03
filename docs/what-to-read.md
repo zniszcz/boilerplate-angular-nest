@@ -13,7 +13,8 @@ reports it when it falls behind.
   [Agent fleet](development/agent-fleet.md).
 - Shutting the fleet down (tmux sessions and every background process):
   the skill `shutdown-fleet`; try `scripts/fleet/fleet-shutdown.sh --dry-run`
-  first. Afterwards `.fleet/resume.md` says how to come back.
+  first. By default it lets running work finish; `--force` kills at once.
+  Afterwards `.fleet/resume.md` says how to come back.
 - CI: GitHub-hosted runners; switches for a private fork in
   [CI runners](development/ci-runners.md).
 

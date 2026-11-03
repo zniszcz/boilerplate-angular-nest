@@ -7,7 +7,11 @@ fleet sessions. Session names are unique per run on top of that.
 Each pane runs a stand-in for Claude Code (a bash script named claude) that
 registers a conversation in <CLAUDE_CONFIG_DIR>/sessions/<pid>.json like the real
 one, keeps a sleep child, and leaves one more sleep outside its process tree
-(double fork) that only the pane's environment still ties to the fleet.
+(double fork) that only the pane's environment still ties to the fleet. With
+FAKE_WORK set, the child is work that finishes after that many seconds and the
+process outside the tree is an idle daemon (a command line with --watch).
+
+The default mode lets work finish and never sends SIGKILL; --force kills at once.
 
 Run: python3 -m unittest discover -s scripts/fleet/tests
 """
@@ -29,10 +33,20 @@ if [ "$1" != none ]; then
   printf '{"pid":%s,"sessionId":"%s","cwd":"%s","kind":"interactive"}' $$ "$1" "$PWD" \\
     > "$CLAUDE_CONFIG_DIR/sessions/$$.json"
 fi
-sleep 300 &
-echo $! >> "$FAKE_PIDS"
-# A daemon that left the tree, as a build daemon does; only TMUX_PANE ties it here.
-( sleep 301 & echo $! >> "$FAKE_PIDS" )
+if [ -n "${FAKE_WORK:-}" ]; then
+  # Work that ends on its own after FAKE_WORK seconds and leaves a marker. Like a
+  # Bash tool command of Claude Code (measured 2026-11-03), it runs in its own
+  # session without a controlling terminal.
+  setsid bash -c 'sleep "$0"; touch "$1"' "$FAKE_WORK" "$FAKE_DONE.$$" &
+  echo $! >> "$FAKE_PIDS"
+  # An idle daemon that left the tree, as a Gradle daemon does: never finishes.
+  ( python3 -c 'import time; time.sleep(300)' --watch & echo $! >> "$FAKE_PIDS" )
+else
+  sleep 300 &
+  echo $! >> "$FAKE_PIDS"
+  # A job that left the tree; only TMUX_PANE ties it here.
+  ( sleep 301 & echo $! >> "$FAKE_PIDS" )
+fi
 echo $$ >> "$FAKE_PIDS"
 wait
 """
@@ -87,9 +101,10 @@ class Shutdown(unittest.TestCase):
             "TMUX_TMPDIR": str(self.tmux_dir),
             "CLAUDE_CONFIG_DIR": str(self.claude_dir),
             "FAKE_PIDS": str(self.pids_file),
+            "FAKE_DONE": str(self.base / "done"),
             "FLEET_NAME": "fstest", "FLEET_MAIN": "main", "FLEET_SCOPE": "", "FLEET_GUIDE": "",
             "FLEET_SESSION": self.workers, "FLEET_MANAGER_SESSION": self.manager,
-            "FLEET_SHUTDOWN_DELAY": "0", "FLEET_SHUTDOWN_GRACE": "2",
+            "FLEET_SHUTDOWN_DELAY": "0", "FLEET_SHUTDOWN_GRACE": "2", "FLEET_SHUTDOWN_WAIT": "30",
         }
         # The guarantee that the real tmux server is out of reach.
         self.assertNotIn("TMUX", self.env)
@@ -101,7 +116,18 @@ class Shutdown(unittest.TestCase):
 
     def kill_leftovers(self):
         self.tmux("kill-server", check=False)
-        for pid in self.fake_pids():
+        snapshot = subprocess.run(["ps", "-e", "-o", "pid=,ppid="], capture_output=True, text=True).stdout
+        children = {}
+        for line in snapshot.splitlines():
+            pid, ppid = map(int, line.split())
+            children.setdefault(ppid, []).append(pid)
+        queue, found = list(self.fake_pids()), set()
+        while queue:
+            pid = queue.pop()
+            if pid not in found:
+                found.add(pid)
+                queue.extend(children.get(pid, []))
+        for pid in found:
             if alive(pid):
                 os.kill(pid, 9)
 
@@ -166,7 +192,7 @@ class Shutdown(unittest.TestCase):
 
     def report(self):
         path = self.fleet / "shutdown-report.txt"
-        deadline = time.time() + 30
+        deadline = time.time() + 60
         while time.time() < deadline:
             if path.exists() and "result:" in path.read_text():
                 return path.read_text()
@@ -177,13 +203,13 @@ class Shutdown(unittest.TestCase):
         return self.tmux("has-session", "-t", f"={name}", check=False).returncode == 0
 
 
-class Kill(Shutdown):
+class Force(Shutdown):
     def test_resume_file_first_then_nothing_survives(self):
         self.fleet_up()
         processes = self.tree()
         # Two fake claudes, their sleep children and daemons, and the guard window.
         self.assertEqual(len(processes), 7)
-        output = self.shutdown()
+        output = self.shutdown("--force")
 
         resume = (self.fleet / "resume.md").read_text()
         self.assertIn(self.manager_id, resume)
@@ -198,6 +224,7 @@ class Kill(Shutdown):
         self.assertIn("detached process", output)
 
         report = self.report()
+        self.assertIn("(force)", report)
         self.assertIn("result: ok", report.splitlines()[-1], report)
         self.assertFalse(self.session_exists(self.manager))
         self.assertFalse(self.session_exists(self.workers))
@@ -208,7 +235,7 @@ class Kill(Shutdown):
         """A session whose name merely starts with the fleet's is someone else's."""
         bystander = f"{self.manager}-other"
         self.start(bystander, "main", "sleep 300")
-        output = self.shutdown()
+        output = self.shutdown("--force")
         self.assertIn("nothing to shut down", output)
         self.assertTrue(self.session_exists(bystander))
 
@@ -217,11 +244,53 @@ class Kill(Shutdown):
         self.start(self.workers, "stubborn", "trap '' TERM HUP; while :; do sleep 0.2; done")
         time.sleep(0.5)
         processes = self.tree()
-        self.shutdown()
+        self.shutdown("--force")
         report = self.report()
         self.assertIn("result: ok", report)
         self.assertNotIn("SIGKILL needed: 0", report)
         self.assertEqual([pid for pid in processes if alive(pid)], [], report)
+
+
+class Gentle(Shutdown):
+    def test_work_finishes_then_everything_closes(self):
+        self.env["FAKE_WORK"] = "4"
+        self.fleet_up()
+        processes = self.tree()
+        started = time.time()
+        output = self.shutdown()
+        self.assertIn("gentle", output)
+        report = self.report()
+        self.assertIn("(gentle)", report)
+        self.assertIn("result: ok", report.splitlines()[-1], report)
+        # Both claudes' work ran to its end although Claude itself got SIGTERM first.
+        markers = list(self.base.glob("done.*"))
+        self.assertEqual(len(markers), 2, report)
+        self.assertGreater(min(m.stat().st_mtime for m in markers), started)
+        self.assertFalse(self.session_exists(self.manager))
+        self.assertFalse(self.session_exists(self.workers))
+        # The idle --watch daemons were stopped too, and nothing needed SIGKILL.
+        self.assertEqual([pid for pid in processes if alive(pid)], [], report)
+        self.assertNotIn("SIGKILL", report)
+
+    def test_unfinished_work_is_left_running_and_reported(self):
+        self.env["FAKE_WORK"] = "120"
+        self.env["FLEET_SHUTDOWN_WAIT"] = "3"
+        self.fleet_up()
+        self.shutdown()
+        report = self.report()
+        self.assertIn("result: WAITING", report.splitlines()[-1], report)
+        self.assertIn("STILL RUNNING (left alone)", report)
+        # Work is not killed, and the sessions stay so its terminal stays open.
+        self.assertTrue(self.session_exists(self.workers))
+        self.assertEqual(list(self.base.glob("done.*")), [])
+        work = [line for line in report.splitlines() if line.startswith("STILL RUNNING")]
+        # Each work item is a bash with its sleep, in both fake claudes.
+        self.assertEqual(len(work), 4, report)
+        for line in work:
+            self.assertTrue(alive(int(line.split("pid ")[1].split()[0])), line)
+        # The Claude processes did stop: their conversations are saved for resume.
+        claudes = subprocess.run(["pgrep", "-f", f"claude {self.worker_id}"], capture_output=True, text=True)
+        self.assertEqual(claudes.stdout.strip(), "")
 
 
 class Abort(Shutdown):
@@ -258,7 +327,9 @@ class Abort(Shutdown):
         self.assertIn("DRY RUN", output)
         self.assertIn(self.manager_id, output)
         self.assertIn(f"--resume {self.worker_id}", output)
-        self.assertIn("Would kill", output)
+        self.assertIn("Would stop", output)
+        self.assertIn(" work ", output)
+        self.assertIn(" claude ", output)
         self.assert_untouched(processes)
         self.assertFalse((self.fleet / "shutdown").exists())
 

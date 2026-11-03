@@ -3,9 +3,11 @@ name: shutdown-fleet
 description: >
   Shuts the agent fleet down so it can come back: first writes a resume file
   with the conversation id of the manager and of every live worker (branch,
-  worktree, uncommitted changes, the exact command to come back), then kills
-  the fleet's tmux sessions with their whole process trees and checks that
-  nothing is left running. Use when the human says "shut the fleet down",
+  worktree, uncommitted changes, the exact command to come back), then closes
+  the fleet's tmux sessions: by default gently (Claude and the guard get
+  SIGTERM, running builds, tests and gates finish on their own, then the
+  sessions and idle daemons go), with --force killing whole process trees at
+  once; finally it checks that nothing is left running. Use when the human says "shut the fleet down",
   "kill the sessions", "stop tmux for today" or "make sure nothing runs in
   the background".
 metadata:
@@ -29,7 +31,9 @@ leaves behind daemons that left the process tree. Decision:
    transcript, so it could not be resumed. Nothing was killed. Pass the list
    from the message to the human and wait for their decision; do not work
    around it.
-3. **Shut down.** `scripts/fleet/fleet-shutdown.sh` writes the resume file
+3. **Shut down.** `scripts/fleet/fleet-shutdown.sh` (gently), or
+   `scripts/fleet/fleet-shutdown.sh --force` (at once; only when the human
+   asks for `--force` or a gentle run left processes behind). It writes the resume file
    `.fleet/resume.md` (a copy stays in `.fleet/shutdown/`), puts the running
    manager id into `.fleet/manager-session`, and hands the killing to a
    detached process (`setsid`) that starts after 5 seconds
@@ -38,21 +42,35 @@ leaves behind daemons that left the process tree. Decision:
 4. **Before the session goes** (when you are the manager in tmux): within
    those seconds, tell the human in one sentence where the resume file is and
    that `./resume-manager.sh` brings the fleet back. Wait for nothing else.
-5. **Check** (when you run outside the fleet's sessions): after a few
-   seconds read `.fleet/shutdown-report.txt`. A last line `result: ok` means
-   both sessions are gone and no remembered process is alive.
-   `result: FAILED` lists above it every process and session that survived;
-   pass it on word for word.
+5. **Check** (when you run outside the fleet's sessions): read
+   `.fleet/shutdown-report.txt`; in the gentle mode it appears only once the
+   work has finished or the wait ran out. A last line `result: ok` means both
+   sessions are gone and no remembered process is alive. `result: WAITING`
+   means something still works after the wait; it was not killed, its
+   sessions stay, and the report lists it (`STILL RUNNING`).
+   `result: FAILED` lists every process and session that survived. Pass it
+   on word for word; run `--force` only on the human's word.
 
-## What it kills
+## What it stops, and how
 
 Everything that grew out of the panes of the `<name>-manager` and
 `<name>-fleet` sessions, plus processes that left the tree (a build daemon,
-a watcher) but still carry one of those panes in `TMUX_PANE`. First SIGTERM
-and `tmux kill-session`, after 5 seconds (`FLEET_SHUTDOWN_GRACE`) SIGKILL for
-survivors, and finally a new check of every remembered PID together with its
-start time, so a reused PID is never hit. Sessions with other names are never
-touched, including those whose name only starts the same way. Isolated
+a watcher, a background job) but still carry one of those panes in
+`TMUX_PANE`. Sessions with other names are never touched, including those
+whose name only starts the same way.
+
+- **Default, gentle.** Panes stay open (`remain-on-exit`), Claude and the
+  guard get SIGTERM, and the rest of the work (builds, tests, gates,
+  detached jobs) finishes on its own for up to `FLEET_SHUTDOWN_WAIT` seconds
+  (1800 by default). Idle daemons (`FLEET_SHUTDOWN_IDLE`: Gradle and Kotlin
+  daemons, watchers, dev servers) are not work: they get SIGTERM only after
+  the sessions close. Nothing gets SIGKILL; what still runs after the wait
+  stays and goes into the report.
+- **`--force`.** SIGTERM to everything at once and `tmux kill-session`, after
+  5 seconds (`FLEET_SHUTDOWN_GRACE`) SIGKILL for survivors.
+
+Both modes finally check every remembered PID together with its start time,
+so a reused PID is never hit. Isolated
 instances (databases, Docker) are not stopped; `instance-cleanup` does that.
 
 ## Coming back
@@ -64,6 +82,6 @@ each in the window `<name>-fleet:<worker>`, so the guard and the audit see it.
 ## Tests
 
 `python3 -m unittest discover -s scripts/fleet/tests`
-(`test_fleet_shutdown.py`). The tests run dummy sessions on a separate tmux
+(`test_fleet_shutdown.py`). The tests cover both modes and run dummy sessions on a separate tmux
 server (their own `TMUX_TMPDIR`, no `TMUX`), so they cannot reach a real
 fleet. Never try the script on real sessions: use `--dry-run` for that.
